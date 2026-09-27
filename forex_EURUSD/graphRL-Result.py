@@ -17,10 +17,13 @@ from os import listdir
 from os.path import isfile, join
 import sys
 from operator import itemgetter
+#import matplotlib
+#matplotlib.use('QtAgg')  # Nutzt das frisch installierte PyQt6-Fenstersystem
 import matplotlib.pyplot as plt
+plt.figure(figsize=(12, 8)) # Schön groß machen!
 
 
-path = '/Users/uwe.mueller/Hope/data/final/EURUSD/result/'
+path = '/home/uwe/Hope/data/final/EURUSD/result/'
 
 
 files = [f for f in listdir(path) if isfile(join(path, f)) and f[:11] == 'rl-results-']
