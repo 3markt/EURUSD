@@ -111,7 +111,8 @@ class ForexDayTrader:
         self.daily_reward = np.array([])
 
         # memory for td-error analysis
-        self.td_error_size = 500
+        self.td_err_save_flag = True
+        self.td_error_size = 1000
         self.td_error = []
         self.td_err_save_cnt = 0
 
@@ -209,11 +210,13 @@ class ForexDayTrader:
 
         # td_error wird für die error analyse benötigt. Später werden wir in abhängigkeit der td_errors to
         # dreaming_rate festlegen
-        self.td_error.append(target_mod)
-        if (len(self.td_error) >= self.td_error_size):
-            pd.DataFrame(self.td_error).to_csv(self.td_error_path \
-                                    + 'td_error_' + str(self.td_err_save_cnt) + '.csv')
+        if self.td_err_save_flag:
+            self.td_error.append(target_mod)
             self.td_err_save_cnt += 1
+            if (len(self.td_error) >= self.td_error_size):
+                pd.DataFrame(self.td_error).to_csv(self.td_error_path \
+                                    + 'td_error_' + str(self.td_err_save_cnt) + '.csv')
+                self.td_err_save_cnt = 0
 
 
 
