@@ -216,6 +216,7 @@ class ForexDayTrader:
             if (len(self.td_error) >= self.td_error_size):
                 pd.DataFrame(self.td_error).to_csv(self.td_error_path \
                                     + 'td_error_' + str(self.td_err_save_cnt) + '.csv')
+                self.td_error = []
                 self.td_err_save_cnt = 0
 
 
