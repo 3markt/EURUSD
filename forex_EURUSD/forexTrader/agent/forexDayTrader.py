@@ -68,7 +68,7 @@ class ForexDayTrader:
         self.gamma = 0.975
         self.epsilon = 0.9
         self.learning_rate = 0.1
-        self.dreaming_rate = 0.9
+        self.dreaming_rate = 0.5
 
         self.bs = bs
         self.ts = ts
