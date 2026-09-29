@@ -832,10 +832,10 @@ class forexRLDayTrading:
         #
         #######################################
         ### change re-start parameter here ####
-        self.dr = 0.5
+        self.dr = 0.35
         self.exploration_rate = 0.9
         self.learning_rate = 0.01
-        init_weight_name = 'initModel'
+        init_weight_name = 'bestModel'
         self.last_best_upd = 0
         start = 1
         end = 100000000

@@ -15,6 +15,8 @@ import sys
 import gc
 from os import listdir, makedirs
 from os.path import isfile, join, isdir
+
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -58,6 +60,7 @@ class ForexDayTrader:
                             + '.pt'
         self.data_path = basepath + 'RL-data/'
         self.longterm_path = basepath + 'longterm_memory/'
+        self.td_error_path = basepath + 'td_error/'
         self.longterm_index = 0
         self.longterm_index_file = self.longterm_path + 'index.npy'
         self.ltmem = []
@@ -106,6 +109,11 @@ class ForexDayTrader:
         self.daily_state = np.array([])
         self.daily_action = np.array([]).astype(int)
         self.daily_reward = np.array([])
+
+        # memory for td-error analysis
+        self.td_error_size = 500
+        self.td_error = []
+        self.td_err_save_cnt = 0
 
 
 
@@ -198,6 +206,14 @@ class ForexDayTrader:
                                      action,
                                      state, 
                                      target.reshape(self.bs, 3)])
+
+        # td_error wird für die error analyse benötigt. Später werden wir in abhängigkeit der td_errors to
+        # dreaming_rate festlegen
+        self.td_error.append(target_mod)
+        if (len(self.td_error) >= self.td_error_size):
+            pd.DataFrame(self.td_error).to_csv(self.td_error_path \
+                                    + 'td_error_' + str(self.td_err_save_cnt) + '.csv')
+            self.td_err_save_cnt += 1
 
 
 
