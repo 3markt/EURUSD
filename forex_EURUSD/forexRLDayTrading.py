@@ -504,21 +504,17 @@ class forexRLDayTrading:
        
         
        
-    def calcSingleReward(self, diffs, price, i, action):
+    def calcSingleReward(self, rewards, price, i, action):
         #
         # Berechnet den Reward an der Stelle i im Tag
         #
         r = 0
         if (action == 1):
             # reward for opening a Long position
-            for j in range(self.bt-2, i, -1):
-                r = self.gamma*(r + diffs[j])
-            r += diffs[i] - self.tradeFee
+            r = rewards[i] - self.tradeFee
         elif (action == 2):
             # reward for opening a short position
-            for j in range(self.bt-2, i, -1):
-                r = self.gamma*(r - diffs[j])
-            r += -diffs[i] - self.tradeFee
+            r = -rewards[i] - self.tradeFee
                 
         return r
         
@@ -534,13 +530,13 @@ class forexRLDayTrading:
         #
         # Berechnen der Differenzen
         price = df_day['Close'].values
-        diffs = np.diff(price, append=price[-1])*self.pip
+        rewards = self.pip * np.diff(price, append=price[-1]) / price
         #
         # Schleife über den Tag
         reward = np.full((self.bt, 3), 0.)
         for i in range(self.bt-1):
-            reward[i, 1] += self.calcSingleReward(diffs, price, i, 1)
-            reward[i, 2] += self.calcSingleReward(diffs, price, i, 2)
+            reward[i, 1] += self.calcSingleReward(rewards, price, i, 1)
+            reward[i, 2] += self.calcSingleReward(rewards, price, i, 2)
         
         position = np.array(self.bt*[0.]).astype(float)
         currProfit = np.array(self.bt*[0.]).astype(float)
@@ -814,7 +810,7 @@ class forexRLDayTrading:
         
         self.exploration_rate = self.rate_ERscheduler(i, self.exploration_rate)
         self.dr = self.rate_DRscheduler(i, self.dr)
-        self.dreaming_rate = 0.45 + self.dr
+        self.dreaming_rate = 0.25 + self.dr
         self.learning_rate = self.rate_LRscheduler(i, self.learning_rate)
             
         trader.set_rates(self.dreaming_rate, 
@@ -836,13 +832,13 @@ class forexRLDayTrading:
         #
         #######################################
         ### change re-start parameter here ####
-        self.dr = 0.1706
-        self.exploration_rate = 0.16
-        self.learning_rate = 0.005
-        init_weight_name = 'bestModel'
+        self.dr = 0.5
+        self.exploration_rate = 0.9
+        self.learning_rate = 0.01
+        init_weight_name = 'initModel'
         self.last_best_upd = 0
-        start = 1000001
-        end = 10000000
+        start = 1
+        end = 100000000
         ### change re-start parameter here ####
         #######################################
         #
@@ -858,8 +854,7 @@ class forexRLDayTrading:
         register(id='forex-v0', entry_point='forexTrader.envs.forexEnv:ForexEnv')        
 
         env = gym.make(id='forex-v0', 
-                       data_path=self.finalpath + 'RL-data/', 
-                       processed_path=self.processedpath + 'forexCandle/',
+                       data_path=self.finalpath + 'RL-data/',
                        window_size=self.ts, 
                        batch_size=self.bs,
                        training=training)
@@ -1041,7 +1036,6 @@ training = True
 
 eurusdData = forexRLDayTrading('EURUSD')
 
-"""
 eurusdData.processCandle(startDt = fileStartDt)
 
 eurusdData.addEcoData()
@@ -1053,8 +1047,6 @@ eurusdData.formatFinalVersion(training,
 eurusdData.createABT(training)
 
 eurusdData.fitInitialModel()
-"""
-
 
 eurusdData.fitForexDayTrader()
 

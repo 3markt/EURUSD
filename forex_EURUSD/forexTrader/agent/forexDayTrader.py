@@ -65,7 +65,7 @@ class ForexDayTrader:
         if (isfile(self.longterm_index_file)):
             self.longterm_index = np.load(self.longterm_index_file)
 
-        self.gamma = 0.9
+        self.gamma = 0.975
         self.epsilon = 0.9
         self.learning_rate = 0.1
         self.dreaming_rate = 0.9

@@ -28,7 +28,7 @@ class ForexEnv(gym.Env):
 
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, data_path, processed_path, window_size, batch_size, training):
+    def __init__(self, data_path, window_size, batch_size, training):
 
         self.data_path = data_path
         self.ts = window_size
@@ -40,7 +40,6 @@ class ForexEnv(gym.Env):
         self.start_tick = 0
         self.end_tick = self.bs - 1
         self.trade_fee = 1.25
-        self.gamma = 0.90
 
         # episode
         self.done = False
@@ -104,7 +103,7 @@ class ForexEnv(gym.Env):
         if self.training:
             if (self.iter%self.batch_duration == 0):
                 #
-                # lade zufällog ausgewählte neue Batches
+                # lade zufällig ausgewählte neue Batches
                 del self.all_data
                 gc.collect()
                 self.days = np.random.choice(range(self.n_days), 
@@ -128,7 +127,7 @@ class ForexEnv(gym.Env):
                 exit()
                 
         self.position = Positions.Nothing
-        self.prices, self.diffs, self.dttimes, self.feature_values = self.prepare_data()
+        self.prices, self.rewards, self.dttimes, self.feature_values = self.prepare_data()
         self.done = False
         self.end_tick = self.bs - 1
         self.current_tick = self.start_tick
@@ -233,10 +232,10 @@ class ForexEnv(gym.Env):
         
         dttimes = self.all_data[self.batch_id][1]
         prices = self.all_data[self.batch_id][2].reshape(self.bs)
-        diffs = np.diff(prices, append=prices[-1])*self.pip
+        rewards = self.pip*np.diff(prices, append=prices[-1])/prices
         feature_values = self.all_data[self.batch_id][3]
 
-        return prices, diffs, dttimes, feature_values
+        return prices, rewards, dttimes, feature_values
 
 
 
@@ -246,61 +245,28 @@ class ForexEnv(gym.Env):
         r = 0.0
         if (self.position == Positions.Nothing and action == Actions.Buy.value):
         # reward for opening a Long position
-            for i in range(self.bs - 1, self.current_tick, -1):
-                r = self.gamma*(r + self.diffs[i])
-            r += self.diffs[self.current_tick] - self.trade_fee                
+            r = self.rewards[self.current_tick] - self.trade_fee
         elif (self.position == Positions.Nothing and action == Actions.Sell.value):
         # reward for opening a short position
-            for i in range(self.bs - 1, self.current_tick, -1):
-                r = self.gamma*(r - self.diffs[i])
-            r += -self.diffs[self.current_tick] - self.trade_fee
+            r = -self.rewards[self.current_tick] - self.trade_fee
         elif (self.position == Positions.Long and action == Actions.Hold.value):
         # reward for closing a long position
-            r = self.pip * (self.prices[self.current_tick] - self.prices[self.last_trade_tick]) - self.trade_fee
-        elif (self.position == Positions.Long and action == Actions.Buy.value):
-        # reward for holding a long position
-            # discounted future rewards
-            for i in range(self.bs - 1, self.current_tick, -1):
-                r = self.gamma*(r + self.diffs[i])
-            # reward from the past
-            r += self.pip * (self.prices[self.current_tick] - self.prices[self.last_trade_tick])
-            # current reward minus trade fee
-            r += self.diffs[self.current_tick] - self.trade_fee
-        elif (self.position == Positions.Long and action == Actions.Sell.value):
-        # reward for closing a long position and opening a short one
-            # rewards for the long position
-            rL = self.pip * (self.prices[self.current_tick] - self.prices[self.last_trade_tick])
-            # discounted future rewards
-            for i in range(self.bs - 1, self.current_tick, -1):
-                r = self.gamma*(r - self.diffs[i])
-            # current reward
-            r += - self.diffs[self.current_tick] 
-            # add all together and subtract trading fee
-            r += rL - self.trade_fee
+            r = 0.0
         elif (self.position == Positions.Short and action == Actions.Hold.value):
         # reward for closing a short position
-            r = -self.pip * (self.prices[self.current_tick] - self.prices[self.last_trade_tick]) - self.trade_fee
+            r = 0.0
+        elif (self.position == Positions.Long and action == Actions.Buy.value):
+        # reward for holding a long position - no trading fees
+            r = self.rewards[self.current_tick]
+        elif (self.position == Positions.Short and action == Actions.Sell.value):
+       # reward for holding a short position
+            r = -self.rewards[self.current_tick]
+        elif (self.position == Positions.Long and action == Actions.Sell.value):
+        # reward for closing a long position and opening a short one
+            r = -self.rewards[self.current_tick] - self.trade_fee
         elif (self.position == Positions.Short and action == Actions.Buy.value):
         # reward for closing a short position and opening a long one
-            # reward for the short position
-            rS = -self.pip * (self.prices[self.current_tick] - self.prices[self.last_trade_tick])
-            # discounted future rewards
-            for i in range(self.bs - 1, self.current_tick, -1):
-                r = self.gamma*(r + self.diffs[i])
-            # current reward
-            r += self.diffs[self.current_tick]                       
-            # add all together and subtract trading fee
-            r += rS - self.trade_fee
-        elif (self.position == Positions.Short and action == Actions.Sell.value):
-        # reward for holding a short position
-            # discounted future rewards
-            for i in range(self.bs - 1, self.current_tick, -1):
-                r = self.gamma*(r - self.diffs[i])
-            # reward from the past
-            r += -self.pip * (self.prices[self.current_tick] - self.prices[self.last_trade_tick])
-            # current reward minus trade fee
-            r += -self.diffs[self.current_tick] - self.trade_fee
-            
+            r = self.rewards[self.current_tick] - self.trade_fee
         return r
     
     
@@ -310,34 +276,17 @@ class ForexEnv(gym.Env):
         # calculates the profit until the current state
         #
         if (self.position == Positions.Long):
-            currProfit = self.pip * (self.prices[self.current_tick] - \
-                                     self.prices[self.last_trade_tick]) \
-                                - self.trade_fee
+            currProfit = self.pip * (self.prices[self.current_tick] \
+                                          - self.prices[self.last_trade_tick]) \
+                                     / self.prices[self.last_trade_tick] - self.trade_fee
         elif (self.position == Positions.Short):
-            currProfit = -self.pip * (self.prices[self.current_tick] - \
-                                      self.prices[self.last_trade_tick]) \
-                                - self.trade_fee
+            currProfit = -self.pip * (self.prices[self.current_tick] \
+                                          - self.prices[self.last_trade_tick]) \
+                                    / self.prices[self.last_trade_tick] - self.trade_fee
         else:
             currProfit = 0.0
-            
-        if (self.cnt_calculate_current_profit < 10000000):
-            self.cnt_calculate_current_profit += 1
-            self.sum_current_profit += currProfit
-            self.sum2_current_profit += currProfit**2
-            self.mean_cp = self.sum_current_profit/self.cnt_calculate_current_profit
-            self.std_cp = np.sqrt(self.sum2_current_profit/self.cnt_calculate_current_profit \
-                                  - self.mean_cp**2)
-            if (self.std_cp == 0.0):
-                self.std_cp = 1.0
 
-            if (self.cnt_calculate_current_profit % 50000 == 0):
-                print('-----> current_profit = %5.2f mean = %5.2f std = %5.2f cnt = %10i' \
-                      % ((currProfit - self.mean_cp)/self.std_cp, 
-                         self.mean_cp, 
-                         self.std_cp, 
-                         self.cnt_calculate_current_profit))
-                
-        return (currProfit - self.mean_cp)/self.std_cp
+        return currProfit
         
         
     
