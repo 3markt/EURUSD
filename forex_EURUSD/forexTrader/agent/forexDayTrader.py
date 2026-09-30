@@ -291,7 +291,7 @@ class ForexDayTrader:
                 self.opt_m.step()
                 batch_loss += loss.item()
 
-            # und jetz noch ein detach der hidden_state, damit wir keinen memory overflow bekommen
+            # und jetzt noch ein detach der hidden_state, damit wir keinen memory overflow bekommen
             if hidden_state is not None:
                 hidden_state = tuple(h.detach() for h in hidden_state)
 
