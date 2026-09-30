@@ -11,7 +11,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 plt.figure(figsize=(12, 8)) # Schön groß machen!
 
-row = -777
+row = -11
 td_error = pd.read_csv('/home/uwe/Hope/data/final/EURUSD/td_error/td_error_1000.csv')
 x = pd.DataFrame(list(range(252)))
 y = td_error.iloc[row, 1:]
