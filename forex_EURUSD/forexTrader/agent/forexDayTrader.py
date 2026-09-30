@@ -188,7 +188,7 @@ class ForexDayTrader:
         
         # calculate new target values according to Bellmann-equation
         self.target_model.eval()
-        target_tt = self.target_model(state_tt)
+        target_tt, _ = self.target_model(state_tt)
         target = target_tt[:,-1,:].detach().numpy().reshape(self.bs, 3)
 
         idx_maxTarget = np.argmax(target, axis=1)
