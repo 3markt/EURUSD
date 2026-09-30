@@ -34,7 +34,7 @@ class myLSTM(nn.Module):
         self.hidden_size = hiddensize
 
         # LSTM-Layer mit (4*hiddensize)*(inputsize+hiddensize+1) Parametern
-        self.lstm = nn.LSTM(input_size=inputsize,
+        self.lstm1 = nn.LSTM(input_size=inputsize,
                             hidden_size=hiddensize,
                             num_layers=1, 
                             batch_first=True)
@@ -57,7 +57,7 @@ class myLSTM(nn.Module):
             hidden_state = (h0, c0)
 
         # LSTM-Layer bearbeiten
-        lstm_out, neues_gedaechtnis = self.lstm(x, hidden_state)
+        lstm_out, neues_gedaechtnis = self.lstm1(x, hidden_state)
 
         # Output-Layer bearbeiten
         Q_werte = self.linear(lstm_out)
