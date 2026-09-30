@@ -27,26 +27,42 @@ import torch.utils.data as data
 
 class myLSTM(nn.Module):
     
-    def __init__(self, inputsize):
+    def __init__(self, inputsize=51, hiddensize=48, outputsize=3):
         
-        super().__init__()
-        self.lstm1 = nn.LSTM(input_size=inputsize, 
-                            hidden_size=48, 
+        #super().__init__()
+        super(myLSTM, self).__init__()
+        self.hidden_size = hiddensize
+
+        # LSTM-Layer mit (4*hiddensize)*(inputsize+hiddensize+1) Parametern
+        self.lstm = nn.LSTM(input_size=inputsize,
+                            hidden_size=hiddensize,
                             num_layers=1, 
                             batch_first=True)
-        
-        self.linear = nn.Linear(48, 3)
+
+        # Output-Layer mit (hiddensize*outputsize)+outputsize Parametern
+        self.linear = nn.Linear(hiddensize, outputsize)
         #self.double()
         torch.set_default_dtype(torch.float32)
         
         
         
-    def forward(self, x):
+    def forward(self, x, hidden_state=None):
+
+        # innerhalb eines Tages (Tag = Batch) müssen wir uns die hidden_states merken
+        # nur am Tagesanfang fangen wir frisch, ohne Gedaechtnis an
+        if (hidden_state is None):
+            batch_size = x.size(0)
+            h0 = torch.zeros(1, batch_size, self.hidden_size).to(x.device)
+            c0 = torch.zeros(1, batch_size, self.hidden_size).to(x.device)
+            hidden_state = (h0, c0)
+
+        # LSTM-Layer bearbeiten
+        lstm_out, neues_gedaechtnis = self.lstm(x, hidden_state)
+
+        # Output-Layer bearbeiten
+        Q_werte = self.linear(lstm_out)
         
-        x, _ = self.lstm1(x)
-        x = self.linear(x)
-        
-        return x
+        return Q_werte, neues_gedaechtnis
 
 
 
@@ -120,7 +136,7 @@ class ForexDayTrader:
 
     def create_model(self, name):
 
-        model = myLSTM(self.ff)
+        model = myLSTM(self.ff, 48, 3)
         lr = self.learning_rate
         optimizer = optim.Adam(model.parameters(), lr=lr)
         loss_fn = nn.MSELoss()
@@ -266,8 +282,9 @@ class ForexDayTrader:
             
             self.model.train()
             batch_loss = 0
+            hidden_state = None
             for X, Y in train_loader:
-                Y_pred = self.model(X)
+                Y_pred, hidden_state = self.model(X, hidden_state)
                 loss = self.loss_m(Y_pred, Y)
                 self.opt_m.zero_grad()
                 loss.backward()
@@ -275,9 +292,11 @@ class ForexDayTrader:
                 batch_loss += loss.item()
                 
             running_loss += batch_loss
-                
-            
-        if (self.training_cnt % 1000 == 0):    
+            # und jetz noch ein detach der hidden_state, damit wir keinen memory overflow bekommen
+            if hidden_state is not None:
+                hidden_state = tuple(h.detach() for h in hidden_state)
+
+        if (self.training_cnt % 1000 == 0):
             print('Fit: iteration=%6i count=%5i loss=%2.3f' %
                   (iteration+1, 
                    self.training_cnt, 
