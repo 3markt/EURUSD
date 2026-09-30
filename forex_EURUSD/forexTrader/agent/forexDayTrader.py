@@ -290,10 +290,11 @@ class ForexDayTrader:
                 loss.backward()
                 self.opt_m.step()
                 batch_loss += loss.item()
-                # und jetz noch ein detach der hidden_state, damit wir keinen memory overflow bekommen
-                if hidden_state is not None:
-                    hidden_state = tuple(h.detach() for h in hidden_state)
-                
+
+            # und jetz noch ein detach der hidden_state, damit wir keinen memory overflow bekommen
+            if hidden_state is not None:
+                hidden_state = tuple(h.detach() for h in hidden_state)
+
             running_loss += batch_loss
 
         if (self.training_cnt % 1000 == 0):
