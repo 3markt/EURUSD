@@ -158,7 +158,7 @@ class ForexDayTrader:
         else:
             state_tt = torch.from_numpy(state)
             self.decision_model.eval()
-            action_tt = self.decision_model(state_tt)
+            action_tt, _ = self.decision_model(state_tt)
             action = np.argmax(action_tt[-1, -1, :].detach().numpy().reshape(1, 1, 3))
             
         return action
