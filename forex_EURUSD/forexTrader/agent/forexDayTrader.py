@@ -285,6 +285,8 @@ class ForexDayTrader:
             hidden_state = None
             for X, Y in train_loader:
                 Y_pred, hidden_state = self.model(X, hidden_state)
+
+                # we optimize only for the last time sequence
                 loss = self.loss_m(Y_pred[:,-1,:], Y[:,-1,:])
                 self.opt_m.zero_grad()
                 loss.backward()
