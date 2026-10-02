@@ -27,7 +27,7 @@ path = '/home/uwe/Hope/data/final/EURUSD/result/'
 
 
 files = [f for f in listdir(path) if isfile(join(path, f)) and f[:11] == 'rl-results-']
-#files = [f for f in files if int(f.split("-")[2].split(".")[0]) < 150000]
+#files = [f for f in files if int(f.split("-")[2].split(".")[0]) < 1000000]
 ff = [[f, int(f[11:f.find('.')])] for f in files]
 ff = sorted(ff, key=itemgetter(1))
 files = [f[0] for f in ff]

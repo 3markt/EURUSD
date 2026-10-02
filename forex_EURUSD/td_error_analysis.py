@@ -11,21 +11,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 plt.figure(figsize=(12, 8)) # Schön groß machen!
 
-row = -11
-td_error = pd.read_csv('/home/uwe/Hope/data/final/EURUSD/td_error/td_error_1000.csv')
-x = pd.DataFrame(list(range(252)))
-y = td_error.iloc[row, 1:]
-print(len(x), len(y))
+td_error = pd.read_csv('/home/uwe/Hope/data/final/EURUSD/td_error/td_error_1000.csv',
+                       index_col=0, header=0)
+td_err_mean = td_error.mean(axis=0)
 atd_error = td_error.abs()
-print(atd_error.iloc[row,1:].mean())
-print(td_error.iloc[row,1:].min())
-print(td_error.iloc[row,1:].quantile(q=0.01))
-print(td_error.iloc[row,1:].quantile(q=0.05))
-print(td_error.iloc[row,1:].quantile(q=0.25))
-print(td_error.iloc[row,1:].quantile(q=0.75))
-print(td_error.iloc[row,1:].quantile(q=0.95))
-print(td_error.iloc[row,1:].quantile(q=0.99))
-print(td_error.iloc[row,1:].max())
+td_err_amv = atd_error.mean(axis=1)
+x = pd.DataFrame(list(range(1000)))
+y = td_err_amv
+print(y)
+print(len(x), len(y))
 
 plt.scatter(x, y, linewidth=0.1)
 plt.show()

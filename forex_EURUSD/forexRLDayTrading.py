@@ -82,7 +82,6 @@ class forexRLDayTrading:
     def __init__(self, currency):
         
         self.currency = currency
-        #self.basepath = '/Users/uwe.mueller/Hope/data/'
         self.basepath = '/home/chitlom/data/'
         self.rawpath = self.basepath + 'raw/'
         self.processedpath = self.basepath + 'processed/' + self.currency + '/'
@@ -823,6 +822,7 @@ class forexRLDayTrading:
     def fitForexDayTrader(self):
                   
         nameBestModel = 'bestModel'
+        nameTmpModel = 'tmpModel'
         pathBestModel = self.finalpath + 'model/' + nameBestModel + '/'
         maxAvgTotalReward = -999.99
         training = True
@@ -918,6 +918,11 @@ class forexRLDayTrading:
 
             trader.replay(i)
             if (i % 500 == 0):
+                # trainiere target_model alle xxx-Tage und sichere das Modell
+                trader.train_target()
+                trader.save_model(nameTmpModel)
+
+            if (i % 500 == 0):
                 df = pd.DataFrame(result, columns=['Iteration',
                                                    'DateTime',
                                                    'Batch-ID',
@@ -937,7 +942,6 @@ class forexRLDayTrading:
                           index=False)
 
                 avgTotalReward = np.mean(df["Avg-Total-Reward"])
-                trader.train_target()
                 self.last_best_upd += 1
                 print('Average Total Reward = %5.2f Max Total Reward = %5.2f' \
                       % (avgTotalReward, maxAvgTotalReward))
