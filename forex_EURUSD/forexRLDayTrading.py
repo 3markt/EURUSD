@@ -835,7 +835,7 @@ class forexRLDayTrading:
         self.dr = 0.2598
         self.exploration_rate = 0.3883
         self.learning_rate = 0.0074
-        init_weight_name = 'bestModel'
+        init_weight_name = 'tmpModel'
         self.last_best_upd = 0
         start = 329501
         end = 100000000
