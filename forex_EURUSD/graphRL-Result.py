@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 plt.figure(figsize=(12, 8)) # Schön groß machen!
 
 
-path = '/home/uwe/Hope/data/final/EURUSD/result/'
+path = '/home/uwe/Hope/data/final/EURUSD/result_500_60-25/'
 
 
 files = [f for f in listdir(path) if isfile(join(path, f)) and f[:11] == 'rl-results-']

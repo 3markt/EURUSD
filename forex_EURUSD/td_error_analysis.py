@@ -11,7 +11,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 plt.figure(figsize=(12, 8)) # Schön groß machen!
 
-td_error = pd.read_csv('/home/uwe/Hope/data/final/EURUSD/td_error/td_error_1000.csv',
+td_error = pd.read_csv('/home/uwe/Hope/data/final/EURUSD/td_error/td_error_217000.csv',
                        index_col=0, header=0)
 td_err_mean = td_error.mean(axis=0)
 atd_error = td_error.abs()

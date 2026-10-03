@@ -917,7 +917,7 @@ class forexRLDayTrading:
                            self.learning_rate])
 
             trader.replay(i)
-            if (i % 500 == 0):
+            if (i % 50 == 0):
                 # trainiere target_model alle xxx-Tage und sichere das Modell
                 trader.train_target()
                 trader.save_model(nameTmpModel)

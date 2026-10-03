@@ -111,7 +111,7 @@ class ForexDayTrader:
         self.train_size = 10
         self.training_cnt = 0
         self.max_memory_size = 500
-        self.min_memory_size = 300
+        self.min_memory_size = 100
         self.max_longterm_mem = 1000
         self.sample_size = 20
         
