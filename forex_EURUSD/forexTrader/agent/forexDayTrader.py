@@ -327,13 +327,9 @@ class ForexDayTrader:
                     state_tt = torch.from_numpy(state)
                     target_tt, _ = self.target_model(state_tt)
                     target = target_tt[:, -1, :].detach().numpy().reshape(self.bs, 3)
+                    ltmem[i][4] = target
                     # ... und nun alles in den DQN-memory
-                    self.memory.append(ltmem[i][0],
-                                       ltmem[i][1],
-                                       ltmem[i][2],
-                                       ltmem[i][3],
-                                       state,
-                                       target)
+                    self.memory.append(ltmem)
 
 
 
