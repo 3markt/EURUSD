@@ -8,9 +8,14 @@ Created on Sun Dec 10 15:33:42 2023
 
 import numpy as np
 import pandas as pd
+import random
 
 path = '/home/uwe/Hope/data/final/EURUSD/longterm_memory/'
 
 ltmem = np.load(path + 'ltmem636.npy', allow_pickle=True).tolist()
 
 print(len(ltmem))
+
+ltind = random.sample(range(641), 1)[0]
+print(ltind)
+

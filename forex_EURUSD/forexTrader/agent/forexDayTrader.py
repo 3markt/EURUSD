@@ -111,7 +111,6 @@ class ForexDayTrader:
         self.training_cnt = 0
         self.max_memory_size = 500
         self.min_memory_size = 300
-        self.max_longterm_mem = 1000
         self.lt_sample_size = 20
         self.lt_iteration = 500000
         
@@ -318,7 +317,7 @@ class ForexDayTrader:
             # als zusätzliche training-samples ...
             if (iteration >= self.lt_iteration):
                 # load historical sample memory from long-term memory
-                ltind = random.sample(range(self.longterm_index), 1)
+                ltind = random.sample(range(self.longterm_index), 1)[0]
                 del self.ltmem
                 gc.collect()
                 self.ltmem = np.load(self.longterm_path + 'ltmem' + str(ltind) + '.npy', allow_pickle=True).tolist()
