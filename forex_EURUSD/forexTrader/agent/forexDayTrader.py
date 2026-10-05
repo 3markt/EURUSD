@@ -79,7 +79,6 @@ class ForexDayTrader:
         self.td_error_path = basepath + 'td_error/'
         self.longterm_index = 0
         self.longterm_index_file = self.longterm_path + 'index.npy'
-        self.ltmem = []
         if (isfile(self.longterm_index_file)):
             self.longterm_index = np.load(self.longterm_index_file)
 
@@ -251,7 +250,7 @@ class ForexDayTrader:
 
         self.opt_m.param_groups[0]['lr'] = self.learning_rate
 
-        samples = random.sample(self.memory + self.ltmem, self.train_size)
+        samples = random.sample(self.memory, self.train_size)
         running_loss = 0
         for sample in samples:
             self.training_cnt += 1
@@ -318,19 +317,23 @@ class ForexDayTrader:
             if (iteration >= self.lt_iteration):
                 # load historical sample memory from long-term memory
                 ltind = random.sample(range(self.longterm_index), 1)[0]
-                del self.ltmem
-                gc.collect()
-                self.ltmem = np.load(self.longterm_path + 'ltmem' + str(ltind) + '.npy', allow_pickle=True).tolist()
+                ltmem = np.load(self.longterm_path + 'ltmem' + str(ltind) + '.npy', allow_pickle=True).tolist()
 
                 # ... und jetzt noch aktualisieren der targets aus dem aktuellen target_model
-                lt_n = len(self.ltmem)
+                lt_n = len(ltmem)
                 self.target_model.eval()
                 for i in range(lt_n):
-                    state = np.float32(self.ltmem[i][4].reshape(self.bs, self.ts, self.ff))
+                    state = np.float32(ltmem[i][4].reshape(self.bs, self.ts, self.ff))
                     state_tt = torch.from_numpy(state)
                     target_tt, _ = self.target_model(state_tt)
                     target = target_tt[:, -1, :].detach().numpy().reshape(self.bs, 3)
-                    self.ltmem[i][5] = target
+                    # ... und nun alles in den DQN-memory
+                    self.memory.append(ltmem[i][0],
+                                       ltmem[i][1],
+                                       ltmem[i][2],
+                                       ltmem[i][3],
+                                       state,
+                                       target)
 
 
 
