@@ -328,8 +328,9 @@ class ForexDayTrader:
                     target_tt, _ = self.target_model(state_tt)
                     target = target_tt[:, -1, :].detach().numpy().reshape(self.bs, 3)
                     ltmem[i][4] = target
-                    # ... und nun alles in den DQN-memory
-                    self.memory.append(ltmem[i])
+
+                # ... und nun alles in den DQN-memory
+                self.memory += ltmem
 
 
 

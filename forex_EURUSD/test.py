@@ -14,7 +14,7 @@ path = '/home/uwe/Hope/data/final/EURUSD/longterm_memory/'
 
 ltmem = np.load(path + 'ltmem636.npy', allow_pickle=True).tolist()
 
-print(isinstance(ltmem[1], list))
+print(ltmem[1])
 
 #ltind = random.sample(range(641), 1)[0]
 #print(ltind)
