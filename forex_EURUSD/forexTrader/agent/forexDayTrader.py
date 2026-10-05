@@ -80,7 +80,6 @@ class ForexDayTrader:
         self.longterm_index = 0
         self.longterm_index_file = self.longterm_path + 'index.npy'
         self.ltmem = []
-        self.longterm_memory = []
         if (isfile(self.longterm_index_file)):
             self.longterm_index = np.load(self.longterm_index_file)
 
@@ -111,9 +110,10 @@ class ForexDayTrader:
         self.train_size = 10
         self.training_cnt = 0
         self.max_memory_size = 500
-        self.min_memory_size = 100
+        self.min_memory_size = 300
         self.max_longterm_mem = 1000
-        self.sample_size = 20
+        self.lt_sample_size = 20
+        self.lt_iteration = 500000
         
         # initialize structures required for memory
         self.memory = []
@@ -216,13 +216,6 @@ class ForexDayTrader:
                             action,
                             state, 
                             target.reshape(self.bs, 3)])
-    
-        self.longterm_memory.append([dt, 
-                                     batch_id, 
-                                     total_reward,
-                                     action,
-                                     state, 
-                                     target.reshape(self.bs, 3)])
 
         # td_error wird für die error analyse benötigt. Später werden wir in abhängigkeit der td_errors to
         # dreaming_rate festlegen
@@ -311,41 +304,36 @@ class ForexDayTrader:
         self.decision_model.load_state_dict(self.model.state_dict())
 
         n = len(self.memory)
-        nl = len(self.longterm_memory)
-        if (iteration <= 500000):
-            num_lt_sample_files = 0
-        else:
-            num_lt_sample_files = 1
-        
-        #
-        # Memory-management: keep historical sample memory and re-use it in 
-        #                    current training in order to avoid the NN-forget-problem
-        #
         if (n >= self.max_memory_size):
-            if (self.longterm_index >= num_lt_sample_files):
+            # das wichtigste: platz machen für den eigentlichen DQN-speicher - wir schmeissen alte samples weg
+            self.memory = self.memory[n-self.min_memory_size:]
+
+            # save historical sample memory as long-term memory gegen das nn-forget problem
+             np.save(self.longterm_path + 'ltmem' + str(self.longterm_index) + '.npy',
+                        np.array(random.sample(self.memory, self.lt_sample_size), dtype=object), allow_pickle=True)
+             self.longterm_index += 1
+             np.save(self.longterm_index_file, self.longterm_index)
+
+            # gegen das nn-forget problem merken wir uns eine kleine stichproben aus alten iterationen und nutzen diese
+            # als zusätzliche training-samples ...
+            if (iteration >= self.lt_iteration):
                 # load historical sample memory from long-term memory
-                ltind = random.sample(range(self.longterm_index), num_lt_sample_files)
+                ltind = random.sample(range(self.longterm_index), 1)
                 del self.ltmem
                 gc.collect()
                 self.ltmem = []
-                for l in ltind:
-                    self.ltmem += np.load(self.longterm_path + 'ltmem' + str(l) + '.npy',
-                                          allow_pickle=True).tolist()
-            self.memory = self.memory[n-self.min_memory_size:]
-            
-        if (nl >= self.max_longterm_mem):
-            # save historical sample memory as long-term memory
-             np.save(self.longterm_path + 'ltmem' + str(self.longterm_index) + '.npy', 
-                    np.array(random.sample(self.longterm_memory, 
-                                           self.sample_size), 
-                             dtype=object),
-                    allow_pickle=True)
-             del self.longterm_memory
-             gc.collect()
-             self.longterm_memory = []
-             self.longterm_index += 1
-             np.save(self.longterm_index_file, self.longterm_index)
-           
+                self.ltmem = np.load(self.longterm_path + 'ltmem' + str(ltind) + '.npy', allow_pickle=True).tolist()
+
+                # ... und jetzt noch aktualisieren der targets aus dem aktuellen target_model
+                lt_n = len(self.ltmem)
+                self.target_model.eval()
+                for i in range(lt_n):
+                    state = np.float32(self.ltmem[i][4].reshape(self.bs, self.ts, self.ff))
+                    state_tt = torch.from_numpy(state)
+                    target_tt, _ = self.target_model(state_tt)
+                    target = target_tt[:, -1, :].detach().numpy().reshape(self.bs, 3)
+                    self.ltmem[i][5] = target
+
 
 
     def train_target(self):

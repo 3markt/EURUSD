@@ -8,22 +8,18 @@ Created on Wed Mar 10 09:30:10 2021
 
 import numpy as np
 import pandas as pd
-import random
-import requests 
-import json 
 
-   
+
 def setIterRates(rate, i):
     
-    rate = rate * np.exp(-(1/(950000 + i)))
+    rate = rate * np.exp(-(1/(250000 + i)))
     
     return rate
 
 
-lr = 0.005
+lr = 0.2821
 
-for i in range(100):
+for i in range(450000):
     lr = setIterRates(lr, i)
-    print(lr, np.exp(-(1/(950000 + i))))
-    print(('%5i -te') % (i))
+print(lr)
 
