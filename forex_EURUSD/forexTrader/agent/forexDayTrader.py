@@ -309,10 +309,10 @@ class ForexDayTrader:
             self.memory = self.memory[n-self.min_memory_size:]
 
             # save historical sample memory as long-term memory gegen das nn-forget problem
-             np.save(self.longterm_path + 'ltmem' + str(self.longterm_index) + '.npy',
+            np.save(self.longterm_path + 'ltmem' + str(self.longterm_index) + '.npy',
                         np.array(random.sample(self.memory, self.lt_sample_size), dtype=object), allow_pickle=True)
-             self.longterm_index += 1
-             np.save(self.longterm_index_file, self.longterm_index)
+            self.longterm_index += 1
+            np.save(self.longterm_index_file, self.longterm_index)
 
             # gegen das nn-forget problem merken wir uns eine kleine stichproben aus alten iterationen und nutzen diese
             # als zusätzliche training-samples ...
@@ -321,7 +321,6 @@ class ForexDayTrader:
                 ltind = random.sample(range(self.longterm_index), 1)
                 del self.ltmem
                 gc.collect()
-                self.ltmem = []
                 self.ltmem = np.load(self.longterm_path + 'ltmem' + str(ltind) + '.npy', allow_pickle=True).tolist()
 
                 # ... und jetzt noch aktualisieren der targets aus dem aktuellen target_model
