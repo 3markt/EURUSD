@@ -110,15 +110,28 @@ plt.grid()
 plt.show()
 
 var = 'Avg-Hold'
+l1 = 'Avg-Hold-Actions'
 y = df[var]
 plt.title('Anzahl per Trade-Typ')
-plt.scatter(x, y, label=var, linewidth=0.1)
+plt.scatter(x, y, label=l1, linewidth=0.1)
 var = 'Avg-Buy'
+l2 = 'Avg-Buy-Actions'
 y = df[var]
-plt.scatter(x, y, label=var, linewidth=0.1)
+plt.scatter(x, y, label=l2, linewidth=0.1)
 var = 'Avg-Sell'
+l3 = 'Avg-Sell-Actions'
 y = df[var]
-plt.scatter(x, y, label=var, linewidth=0.1)
+plt.scatter(x, y, label=l3, linewidth=0.1)
+plt.legend(loc='best')
+plt.grid()
+plt.show()
+
+y1 = df['Avg-Sell']
+l1 = '#-Short-Trades'
+plt.scatter(x, y1, label=l1, linewidth=0.1)
+y2 = df['Avg-Buy']
+l2 = '#-Long-Length'
+plt.scatter(x, y2, label=l2, linewidth=0.1)
 plt.legend(loc='best')
 plt.grid()
 plt.show()

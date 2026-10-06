@@ -50,6 +50,7 @@ class ForexEnv(gym.Env):
         self.total_reward_short = 0.
         self.n_long = 0
         self.n_short = 0
+        self.n_hold = 0
         self.batch_duration = 500
         self.iter = 0
         
@@ -137,6 +138,7 @@ class ForexEnv(gym.Env):
         self.total_reward_short = 0.
         self.n_long = 0
         self.n_short = 0
+        self.n_hold = 0
         self.state = self.feature_values[self.start_tick]
         self.state = self.get_state()
         
@@ -151,6 +153,7 @@ class ForexEnv(gym.Env):
             total_reward_short = self.total_reward_short,
             n_long_trades = self.n_long,
             n_short_trades = self.n_short,
+            n_hold_trades = self.n_hold,
             position = self.position,
             action = Actions.Hold
         )
@@ -167,12 +170,13 @@ class ForexEnv(gym.Env):
             
         reward = self.calculate_reward(action)
         
-        mat_reward, mr_long, mr_short, long, short = self.materialized_reward(action)
+        mat_reward, mr_long, mr_short, long, short, hold = self.materialized_reward(action)
         self.total_reward += mat_reward
         self.total_reward_long += mr_long
         self.total_reward_short += mr_short
         self.n_long += long
         self.n_short += short
+        self.n_hold += hold
         info = dict(
             datetime = self.dttimes[self.current_tick][0][:16],
             batch_id = self.all_data[self.batch_id][0],
@@ -184,6 +188,7 @@ class ForexEnv(gym.Env):
             total_reward_short = self.total_reward_short,
             n_long_trades = self.n_long,
             n_short_trades = self.n_short,
+            n_hold_trades = self.n_hold,
             position = self.position,
             action = action
         )
@@ -298,6 +303,7 @@ class ForexEnv(gym.Env):
         r_short = 0.
         long = 0
         short = 0
+        hold = 0
         if (self.position == Positions.Long and action in (Actions.Hold.value, Actions.Sell.value)):
             r = self.pip * (self.prices[self.current_tick] - self.prices[self.last_trade_tick]) - self.trade_fee
             r_long = r
@@ -306,6 +312,9 @@ class ForexEnv(gym.Env):
             r = -self.pip * (self.prices[self.current_tick] - self.prices[self.last_trade_tick]) - self.trade_fee
             r_short = r
             short = 1
-        return r, r_long, r_short, long, short
+        elif (self.position == Positions.Nothing and action in (Actions.Buy.value, Actions.Sell.value)):
+            r = 0.
+            hold = 1
+        return r, r_long, r_short, long, short, hold
     
 
