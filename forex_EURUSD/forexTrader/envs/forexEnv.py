@@ -19,9 +19,9 @@ class Actions(Enum):
 
 
 class Positions(Enum):
-    Nothing = 0.0
-    Long = 0.5
-    Short = 1.0
+    Nothing = 0
+    Long = 1
+    Short = -1
 
 
 class ForexEnv(gym.Env):
