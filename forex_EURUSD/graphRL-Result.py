@@ -95,8 +95,11 @@ var = 'smoothP'
 y = df[var]
 plt.title('Smooth')
 plt.scatter(x, y, label=var, linewidth=0.1)
+plt.legend(loc='best')
+plt.grid()
+plt.show()
 
-"""          
+
 var = 'Avg-Profit-Long'
 y = df[var]
 plt.scatter(x, y, label=var, linewidth=1)
@@ -104,15 +107,13 @@ var = 'Avg-Profit-Short'
 y = df[var]
 plt.scatter(x, y, label=var, linewidth=1)
 plt.legend(loc='best')
-"""
-
 plt.grid()
 plt.show()
 
 var = 'Avg-Hold'
 l1 = 'Avg-Hold-Actions'
 y = df[var]
-plt.title('Anzahl per Trade-Typ')
+plt.title('Anzahl Actions per Typ')
 plt.scatter(x, y, label=l1, linewidth=0.1)
 var = 'Avg-Buy'
 l2 = 'Avg-Buy-Actions'
@@ -128,6 +129,7 @@ plt.show()
 
 y1 = df['Avg-Sell']
 l1 = '#-Short-Trades'
+plt.title('Anzahl Trades per Typ')
 plt.scatter(x, y1, label=l1, linewidth=0.1)
 y2 = df['Avg-Buy']
 l2 = '#-Long-Length'
@@ -138,6 +140,7 @@ plt.show()
 
 y1 = df['Avg-Sell']/df['Avg-#Short-Trades']
 l1 = 'Avg-Short-Length'
+plt.title('Durchschnittliche Trade-Länge per Typ')
 plt.scatter(x, y1, label=l1, linewidth=0.1)
 y2 = df['Avg-Buy']/df['Avg-#Long-Trades']
 l2 = 'Avg-Long-Length'
