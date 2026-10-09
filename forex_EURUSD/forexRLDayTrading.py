@@ -808,11 +808,11 @@ class forexRLDayTrading:
     def setIterRates(self, trader, i):
         
         self.exploration_rate = self.rate_ERscheduler(i, self.exploration_rate)
-        self.dr = self.rate_DRscheduler(i, self.dr)
-        self.dreaming_rate = 0.25 + self.dr
-        self.learning_rate = self.rate_LRscheduler(i, self.learning_rate)
+        #self.dr = self.rate_DRscheduler(i, self.dr)
+        #self.dreaming_rate = 0.25 + self.dr
+        #self.learning_rate = self.rate_LRscheduler(i, self.learning_rate)
             
-        trader.set_rates(self.dreaming_rate, 
+        trader.set_rates(self.dr,
                          self.exploration_rate,
                          self.learning_rate)
     
@@ -832,12 +832,12 @@ class forexRLDayTrading:
         #
         #######################################
         ### change re-start parameter here ####
-        self.dr = 0.2403
-        self.exploration_rate = 0.2071
-        self.learning_rate = 0.0059
-        init_weight_name = 'tmpModel'
+        self.dr = 1.0
+        self.exploration_rate = 0.99
+        self.learning_rate = 0.005
+        init_weight_name = 'initModel'
         self.last_best_upd = 0
-        start = 640501
+        start = 1
         end = 100000000
         ### change re-start parameter here ####
         #######################################
