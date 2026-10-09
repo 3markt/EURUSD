@@ -10,11 +10,14 @@ import numpy as np
 import pandas as pd
 import random
 
-path = '/home/uwe/Hope/data/final/EURUSD/longterm_memory/'
+a = np.array([0, 3, 0, 2, 0, 1])
+print(np.percentile(a, 95))
 
-ltmem = np.load(path + 'ltmem636.npy', allow_pickle=True).tolist()
+#path = '/home/uwe/Hope/data/final/EURUSD/longterm_memory/'
 
-print(ltmem[1][5].shape)
+#ltmem = np.load(path + 'ltmem636.npy', allow_pickle=True).tolist()
+
+#print(ltmem[1][5].shape)
 
 #ltind = random.sample(range(641), 1)[0]
 #print(ltind)

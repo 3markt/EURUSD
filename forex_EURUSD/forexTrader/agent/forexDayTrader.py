@@ -124,12 +124,6 @@ class ForexDayTrader:
         self.daily_action = np.array([]).astype(int)
         self.daily_reward = np.array([])
 
-        # memory for td-error analysis
-        self.td_err_save_flag = True
-        self.td_error_size = 1000
-        self.td_error = []
-        self.td_err_save_cnt = 0
-
 
 
     def create_model(self, name):
@@ -215,16 +209,16 @@ class ForexDayTrader:
                             state, 
                             target.reshape(self.bs, 3)])
 
-        # td_error wird für die error analyse benötigt. Später werden wir in abhängigkeit der td_errors to
-        # dreaming_rate festlegen
-        if self.td_err_save_flag:
-            self.td_error.append(target_mod)
-            self.td_err_save_cnt += 1
-            if (len(self.td_error) >= self.td_error_size):
-                pd.DataFrame(self.td_error).to_csv(self.td_error_path \
-                                    + 'td_error_' + str(self.td_err_save_cnt) + '.csv')
-                self.td_error = []
-                self.td_err_save_cnt = 0
+        # ... und zum Schluss: berechne die Fehler-Statistik
+        td_err = []
+        td_err.append(target_mod.mean())
+        td_err.append(target_mod.median())
+        td_err.append(target_mod.min())
+        td_err.append(target_mod.max())
+        td_err.append(np.percentile(target_mod, 10))
+        td_err.append(np.percentile(target_mod, 90))
+
+        return td_err
 
 
 

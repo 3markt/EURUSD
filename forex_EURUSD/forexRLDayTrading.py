@@ -895,9 +895,9 @@ class forexRLDayTrading:
                     action_sell += 1
                     
                 if done:
-                    trader.dream(info["datetime"], 
-                                 info["batch_id"], 
-                                 info["total_reward"])
+                    td_err = trader.dream(info["datetime"],
+                                          info["batch_id"],
+                                          info["total_reward"])
                 else:
                     curr_state = new_state
                     
@@ -913,6 +913,12 @@ class forexRLDayTrading:
                            action_hold,
                            action_buy,
                            action_sell,
+                           td_err[0],
+                           td_err[1],
+                           td_err[2],
+                           td_err[3],
+                           td_err[4],
+                           td_err[5],
                            self.dreaming_rate,
                            self.exploration_rate,
                            self.learning_rate])
@@ -936,6 +942,12 @@ class forexRLDayTrading:
                                                    'Avg-Hold-Action',
                                                    'Avg-Buy-Action',
                                                    'Avg-Sell-Action',
+                                                   'td_err Mean',
+                                                   'td_err Median',
+                                                   'td_err Min',
+                                                   'td_err Max',
+                                                   'td_err Pct10',
+                                                   'td_err Pct90',
                                                    'Dreaming Rate',
                                                    'Exploration Rate',
                                                    'Learning Rate'])
