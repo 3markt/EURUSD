@@ -22,7 +22,7 @@ from operator import itemgetter
 import matplotlib.pyplot as plt
 plt.figure(figsize=(12, 8)) # Schön groß machen!
 
-path = '/home/uwe/Hope/data/final/EURUSD/result_500-50_60-25/'
+path = '/home/uwe/Hope/data/final/EURUSD/result_50_1/'
 #path = '/home/uwe/Hope/data/final/EURUSD/result_20260929/'
 
 files = [f for f in listdir(path) if isfile(join(path, f)) and f[:11] == 'rl-results-']
@@ -45,6 +45,13 @@ for f in files:
     avg_profit_short = np.mean(dfi["Short_Reward"])
     avg_nlong = np.mean(dfi["#Long_Trades"])
     avg_nshort = np.mean(dfi["#Short_Trades"])
+    avg_nhold = np.mean(dfi["#Hold_Trades"])
+    td_err_mean = np.mean(dfi["td_err Mean"])
+    td_err_median = np.mean(dfi["td_err Median"])
+    td_err_min = np.mean(dfi["td_err Min"])
+    td_err_max = np.mean(dfi["td_err Max"])
+    td_err_p10 = np.mean(dfi["td_err Pct10"])
+    td_err_p90 = np.mean(dfi["td_err Pct90"])
 
     cnt.append([int(f[11:-4]), 
                 npos, 
@@ -55,7 +62,14 @@ for f in files:
                 avg_buy, 
                 avg_sell,
                 avg_nlong,
-                avg_nshort])
+                avg_nshort,
+                avg_nhold,
+                td_err_mean,
+                td_err_median,
+                td_err_min,
+                td_err_max,
+                td_err_p10,
+                td_err_p90])
 
 df = pd.DataFrame(cnt, columns=["Iteration", 
                                 "Cnt+Profit", 
@@ -66,7 +80,14 @@ df = pd.DataFrame(cnt, columns=["Iteration",
                                 "Avg-Buy",
                                 "Avg-Sell",
                                 "Avg-#Long-Trades",
-                                "Avg-#Short-Trades"]).dropna()
+                                "Avg-#Short-Trades",
+                                "Avg-#Hold-Trades",
+                                "Avg-TD-Error-Mean",
+                                "Avg-TD-Error-Median",
+                                "Avg-TD-Error-Min",
+                                "Avg-TD-Error-Max",
+                                "Avg-TD-Error-P10",
+                                "Avg-TD-Error-P90"]).dropna()
 df['smoothC'] = df['Cnt+Profit'].rolling(100).mean()
 df['smoothP'] = df['Avg-Profit'].rolling(100).mean()
 df.to_csv(path + 'cnt-pos.csv')
@@ -75,32 +96,29 @@ x = df['Iteration']
 plt.xlabel('Iteration')
 plt.rcParams["figure.figsize"] = (12, 7)
 
+plt.title('# positiver Profit')
 var = 'Cnt+Profit'
 y = df[var]
 plt.ylabel(var)
-plt.title('Anzahl positiver Profit')
 plt.scatter(x, y, label=var, linewidth=0.1)
 var = 'smoothC'
 y = df[var]
-plt.title('Smooth')
 plt.scatter(x, y, label=var, linewidth=0.1)
 plt.grid()
 plt.show()
 
+plt.title('Avg Profit Gesamt')
 var = 'Avg-Profit'
 y = df[var]
-plt.title('Profit per Trade-Typ')
 plt.scatter(x, y, label=var, linewidth=0.1)
-
 var = 'smoothP'
 y = df[var]
-plt.title('Smooth')
 plt.scatter(x, y, label=var, linewidth=0.1)
 plt.legend(loc='best')
 plt.grid()
 plt.show()
 
-
+plt.title('Avg Profit per Type')
 var = 'Avg-Profit-Long'
 y = df[var]
 plt.scatter(x, y, label=var, linewidth=1)
@@ -111,10 +129,10 @@ plt.legend(loc='best')
 plt.grid()
 plt.show()
 
+plt.title('Anzahl Actions per Typ')
 var = 'Avg-Hold'
 l1 = 'Avg-Hold-Actions'
 y = df[var]
-plt.title('Anzahl Actions per Typ')
 plt.scatter(x, y, label=l1, linewidth=0.1)
 var = 'Avg-Buy'
 l2 = 'Avg-Buy-Actions'
@@ -128,25 +146,53 @@ plt.legend(loc='best')
 plt.grid()
 plt.show()
 
+plt.title('Anzahl Trades per Typ')
 y1 = df['Avg-#Short-Trades']
 l1 = '#-Short-Trades'
-plt.title('Anzahl Trades per Typ')
 plt.scatter(x, y1, label=l1, linewidth=0.1)
 y2 = df['Avg-#Long-Trades']
 l2 = '#-Long-Trades'
 plt.scatter(x, y2, label=l2, linewidth=0.1)
-plt.legend(loc='best')
-plt.grid()
-plt.show()
-
-y1 = df['Avg-Sell']/df['Avg-#Short-Trades']
-l1 = 'Avg-Short-Length'
-plt.title('Durchschnittliche Trade-Länge per Typ')
-plt.scatter(x, y1, label=l1, linewidth=0.1)
-y2 = df['Avg-Buy']/df['Avg-#Long-Trades']
-l2 = 'Avg-Long-Length'
+y2 = df['Avg-#Hold-Trades']
+l2 = '#-Hold-Trades'
 plt.scatter(x, y2, label=l2, linewidth=0.1)
 plt.legend(loc='best')
 plt.grid()
 plt.show()
 
+plt.title('Durchschnittliche Trade-Länge per Typ')
+y1 = df['Avg-Sell']/df['Avg-#Short-Trades']
+l1 = 'Avg-Short-Length'
+plt.scatter(x, y1, label=l1, linewidth=0.1)
+y2 = df['Avg-Buy']/df['Avg-#Long-Trades']
+l2 = 'Avg-Long-Length'
+plt.scatter(x, y2, label=l2, linewidth=0.1)
+y2 = df['Avg-Hold']/df['Avg-#Hold-Trades']
+l2 = 'Avg-HoldLength'
+plt.scatter(x, y2, label=l2, linewidth=0.1)
+plt.legend(loc='best')
+plt.grid()
+plt.show()
+
+plt.title('TD Error Statistics')
+var = 'Avg-TD-Error-Mean'
+y = df[var]
+plt.scatter(x, y, label=var, linewidth=0.1)
+var = 'Avg-TD-Error-Median'
+y = df[var]
+plt.scatter(x, y, label=var, linewidth=0.1)
+var = 'Avg-TD-Error-Min'
+y = df[var]
+plt.scatter(x, y, label=var, linewidth=0.1)
+var = 'Avg-TD-Error-Max'
+y = df[var]
+plt.scatter(x, y, label=var, linewidth=0.1)
+var = 'Avg-TD-Error-P10'
+y = df[var]
+plt.scatter(x, y, label=var, linewidth=0.1)
+var = 'Avg-TD-Error-P90'
+y = df[var]
+plt.scatter(x, y, label=var, linewidth=0.1)
+plt.legend(loc='best')
+plt.grid()
+plt.show()
