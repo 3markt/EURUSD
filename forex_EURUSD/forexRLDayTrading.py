@@ -797,7 +797,7 @@ class forexRLDayTrading:
     def rate_ERscheduler(self, i, rate): 
         
         if (rate > 0.1):
-            rate = rate * np.exp(-(1/(250000 + i)))
+            rate = rate * np.exp(-(1/(112350 + i)))
         else:
             rate = 0.1
             

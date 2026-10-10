@@ -22,8 +22,8 @@ from operator import itemgetter
 import matplotlib.pyplot as plt
 plt.figure(figsize=(12, 8)) # Schön groß machen!
 
-#path = '/home/uwe/Hope/data/final/EURUSD/result_500-50_60-25/'
-path = '/home/uwe/Hope/data/final/EURUSD/result_20260929/'
+path = '/home/uwe/Hope/data/final/EURUSD/result_500-50_60-25/'
+#path = '/home/uwe/Hope/data/final/EURUSD/result_20260929/'
 
 files = [f for f in listdir(path) if isfile(join(path, f)) and f[:11] == 'rl-results-']
 #files = [f for f in files if int(f.split("-")[2].split(".")[0]) < 1000000]
@@ -128,12 +128,12 @@ plt.legend(loc='best')
 plt.grid()
 plt.show()
 
-y1 = df['Avg-Sell']
+y1 = df['Avg-#Short-Trades']
 l1 = '#-Short-Trades'
 plt.title('Anzahl Trades per Typ')
 plt.scatter(x, y1, label=l1, linewidth=0.1)
-y2 = df['Avg-Buy']
-l2 = '#-Long-Length'
+y2 = df['Avg-#Long-Trades']
+l2 = '#-Long-Trades'
 plt.scatter(x, y2, label=l2, linewidth=0.1)
 plt.legend(loc='best')
 plt.grid()
