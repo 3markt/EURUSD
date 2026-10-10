@@ -812,7 +812,7 @@ class forexRLDayTrading:
         #self.dreaming_rate = 0.25 + self.dr
         #self.learning_rate = self.rate_LRscheduler(i, self.learning_rate)
             
-        trader.set_rates(self.dr,
+        trader.set_rates(self.dreaming_rate,
                          self.exploration_rate,
                          self.learning_rate)
     
@@ -832,7 +832,8 @@ class forexRLDayTrading:
         #
         #######################################
         ### change re-start parameter here ####
-        self.dr = 1.0
+        #self.dr = 0.75
+        self.dreaming_rate = 1.0
         self.exploration_rate = 0.99
         self.learning_rate = 0.005
         init_weight_name = 'initModel'
