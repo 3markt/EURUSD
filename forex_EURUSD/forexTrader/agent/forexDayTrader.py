@@ -214,7 +214,7 @@ class ForexDayTrader:
         td_err.append(np.mean(target_mod))
         td_err.append(np.median(target_mod))
         td_err.append(np.min(target_mod))
-        td_err.append(np.max(target_mode))
+        td_err.append(np.max(target_mod))
         td_err.append(np.percentile(target_mod, 10))
         td_err.append(np.percentile(target_mod, 90))
 
