@@ -211,10 +211,10 @@ class ForexDayTrader:
 
         # ... und zum Schluss: berechne die Fehler-Statistik
         td_err = []
-        td_err.append(target_mod.mean())
-        td_err.append(target_mod.median())
-        td_err.append(target_mod.min())
-        td_err.append(target_mod.max())
+        td_err.append(np.mean(target_mod))
+        td_err.append(np.median(target_mod))
+        td_err.append(np.min(target_mod))
+        td_err.append(np.max(target_mode))
         td_err.append(np.percentile(target_mod, 10))
         td_err.append(np.percentile(target_mod, 90))
 
