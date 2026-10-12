@@ -23,7 +23,6 @@ import matplotlib.pyplot as plt
 plt.figure(figsize=(12, 8)) # Schön groß machen!
 
 path = '/home/uwe/Hope/data/final/EURUSD/result_50_1/'
-#path = '/home/uwe/Hope/data/final/EURUSD/result_20260929/'
 
 files = [f for f in listdir(path) if isfile(join(path, f)) and f[:11] == 'rl-results-']
 #files = [f for f in files if int(f.split("-")[2].split(".")[0]) < 1000000]
@@ -121,10 +120,12 @@ plt.show()
 plt.title('Avg Profit per Type')
 var = 'Avg-Profit-Long'
 y = df[var]
-plt.scatter(x, y, label=var, linewidth=1)
+col = 'green'
+plt.scatter(x, y, label=var, linewidth=1, color=col)
 var = 'Avg-Profit-Short'
 y = df[var]
-plt.scatter(x, y, label=var, linewidth=1)
+col = 'red'
+plt.scatter(x, y, label=var, linewidth=1, color=col)
 plt.legend(loc='best')
 plt.grid()
 plt.show()
@@ -133,15 +134,18 @@ plt.title('Anzahl Actions per Typ')
 var = 'Avg-Hold'
 l1 = 'Avg-Hold-Actions'
 y = df[var]
-plt.scatter(x, y, label=l1, linewidth=0.1)
+col = 'blue'
+plt.scatter(x, y, label=l1, linewidth=0.1, color=col)
 var = 'Avg-Buy'
 l2 = 'Avg-Buy-Actions'
 y = df[var]
-plt.scatter(x, y, label=l2, linewidth=0.1)
+col = 'green'
+plt.scatter(x, y, label=l2, linewidth=0.1, color=col)
 var = 'Avg-Sell'
 l3 = 'Avg-Sell-Actions'
 y = df[var]
-plt.scatter(x, y, label=l3, linewidth=0.1)
+col = 'red'
+plt.scatter(x, y, label=l3, linewidth=0.1, color=col)
 plt.legend(loc='best')
 plt.grid()
 plt.show()
@@ -149,13 +153,16 @@ plt.show()
 plt.title('Anzahl Trades per Typ')
 y1 = df['Avg-#Short-Trades']
 l1 = '#-Short-Trades'
-plt.scatter(x, y1, label=l1, linewidth=0.1)
+col = 'red'
+plt.scatter(x, y1, label=l1, linewidth=0.1, color=col)
 y2 = df['Avg-#Long-Trades']
 l2 = '#-Long-Trades'
-plt.scatter(x, y2, label=l2, linewidth=0.1)
+col = 'green'
+plt.scatter(x, y2, label=l2, linewidth=0.1, color=col)
 y2 = df['Avg-#Hold-Trades']
 l2 = '#-Hold-Trades'
-plt.scatter(x, y2, label=l2, linewidth=0.1)
+col = 'blue'
+plt.scatter(x, y2, label=l2, linewidth=0.1, color=col)
 plt.legend(loc='best')
 plt.grid()
 plt.show()
@@ -163,13 +170,16 @@ plt.show()
 plt.title('Durchschnittliche Trade-Länge per Typ')
 y1 = df['Avg-Sell']/df['Avg-#Short-Trades']
 l1 = 'Avg-Short-Length'
-plt.scatter(x, y1, label=l1, linewidth=0.1)
+col = 'red'
+plt.scatter(x, y1, label=l1, linewidth=0.1, color=col)
 y2 = df['Avg-Buy']/df['Avg-#Long-Trades']
 l2 = 'Avg-Long-Length'
-plt.scatter(x, y2, label=l2, linewidth=0.1)
+col = 'green'
+plt.scatter(x, y2, label=l2, linewidth=0.1, color=col)
 y2 = df['Avg-Hold']/df['Avg-#Hold-Trades']
-l2 = 'Avg-HoldLength'
-plt.scatter(x, y2, label=l2, linewidth=0.1)
+l2 = 'Avg-Hold-Length'
+col = 'blue'
+plt.scatter(x, y2, label=l2, linewidth=0.1, color=col)
 plt.legend(loc='best')
 plt.grid()
 plt.show()
