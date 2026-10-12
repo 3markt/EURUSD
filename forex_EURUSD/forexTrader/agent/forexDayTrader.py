@@ -133,8 +133,8 @@ class ForexDayTrader:
         optimizer = optim.Adam(model.parameters(), lr=lr)
         loss_fn = nn.MSELoss()
         
-        #model.load_state_dict(torch.load(name, weights_only=True))
-        model.load_state_dict(torch.load(name))
+        model.load_state_dict(torch.load(name, weights_only=True))
+        #model.load_state_dict(torch.load(name))
         print('weights loaded from ' + name) 
         sys.stdout.flush()
         
