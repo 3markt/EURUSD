@@ -63,13 +63,13 @@ def calculate_wavelet_features(
 
     # Namen der Features
     columns = [
-        f"energy_D{i}"
+        f"w_energy_D{i}"
         for i in range(level, 0, -1)
     ]
 
     columns += [
-        f"energy_A{level}",
-        "total_energy"
+        f"w_energy_A{level}",
+        "w_total_energy"
     ]
 
     result = pd.DataFrame(
@@ -130,6 +130,8 @@ def calculate_wavelet_features(
         result.iloc[t, :] = values
 
     return result
+
+
 
 path = '/home/uwe/Hope/data/raw/'
 df = pd.read_csv(path + 'EURUSD_20250209_20261008_M5.csv')
