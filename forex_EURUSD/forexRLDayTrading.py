@@ -884,6 +884,7 @@ class forexRLDayTrading:
                 # innerer Loop über den Tag
                 #
                 action = trader.act(curr_state)
+                print(action)
                 new_state, reward, done, terminated, info = env.step(action)
                 new_state = new_state.reshape(1,
                                               self.ts,
