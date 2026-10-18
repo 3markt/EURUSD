@@ -15,13 +15,13 @@ from os.path import isfile, join
 class Actions(Enum):
     Hold = 0
     Buy = 1
-    Sell = 2
+    Sell = -1
 
 
 class Positions(Enum):
-    Nothing = 0.0
-    Long = 0.5
-    Short = 1.0
+    Nothing = 0
+    Long = 1
+    Short = -1
 
 
 class ForexEnv(gym.Env):
@@ -39,7 +39,7 @@ class ForexEnv(gym.Env):
         self.position = Positions.Nothing
         self.start_tick = 0
         self.end_tick = self.bs - 1
-        self.trade_fee = 1.25
+        self.trade_fee = 1.0
 
         # episode
         self.done = False
@@ -128,7 +128,7 @@ class ForexEnv(gym.Env):
                 exit()
                 
         self.position = Positions.Nothing
-        self.prices, self.rewards, self.dttimes, self.feature_values = self.prepare_data()
+        self.prices, self.rewards, self.transcost, self.dttimes, self.feature_values = self.prepare_data()
         self.done = False
         self.end_tick = self.bs - 1
         self.current_tick = self.start_tick
@@ -162,7 +162,7 @@ class ForexEnv(gym.Env):
 
 
     def step(self, action): 
-        assert action in [0, 1, 2]
+        assert action in [-1, 0, 1]
 
         if (self.current_tick == self.end_tick):
             self.done = True
@@ -237,23 +237,27 @@ class ForexEnv(gym.Env):
         
         dttimes = self.all_data[self.batch_id][1]
         prices = self.all_data[self.batch_id][2].reshape(self.bs)
-        rewards = self.pip*np.diff(prices, append=prices[-1])/prices
+    #   rewards = self.pip*np.diff(prices, append=prices[-1])/prices
+        logp_rewards = self.pip*np.log(np.roll(prices, -1)/prices)
+        logp_rewards[-1] = self.pip*np.log(prices[-1]/prices[-2])
+        logp_rewards = np.clip(logp_rewards, -5, 5)
+        logp_transcost = self.pip*np.log(1 + ((self.trade_fee/self.pip)/prices))
         feature_values = self.all_data[self.batch_id][3]
 
-        return prices, rewards, dttimes, feature_values
+        return prices, logp_rewards, logp_transcost, dttimes, feature_values
 
 
 
     def calculate_reward(self, action):
-        assert action in [0, 1, 2]
+        assert action in [-1, 0, 1]
 
         r = 0.0
         if (self.position == Positions.Nothing and action == Actions.Buy.value):
         # reward for opening a Long position
-            r = self.rewards[self.current_tick] - self.trade_fee
+            r = action*self.rewards[self.current_tick] - self.transcost[self.current_tick]
         elif (self.position == Positions.Nothing and action == Actions.Sell.value):
         # reward for opening a short position
-            r = -self.rewards[self.current_tick] - self.trade_fee
+            r = action*self.rewards[self.current_tick] - self.transcost[self.current_tick]
         elif (self.position == Positions.Long and action == Actions.Hold.value):
         # reward for closing a long position
             r = 0.0
@@ -262,16 +266,16 @@ class ForexEnv(gym.Env):
             r = 0.0
         elif (self.position == Positions.Long and action == Actions.Buy.value):
         # reward for holding a long position - no trading fees
-            r = self.rewards[self.current_tick]
+            r = action*self.rewards[self.current_tick]
         elif (self.position == Positions.Short and action == Actions.Sell.value):
        # reward for holding a short position
-            r = -self.rewards[self.current_tick]
+            r = action*self.rewards[self.current_tick]
         elif (self.position == Positions.Long and action == Actions.Sell.value):
         # reward for closing a long position and opening a short one
-            r = -self.rewards[self.current_tick] - self.trade_fee
+            r = action*self.rewards[self.current_tick] - self.transcost[self.current_tick]
         elif (self.position == Positions.Short and action == Actions.Buy.value):
         # reward for closing a short position and opening a long one
-            r = self.rewards[self.current_tick] - self.trade_fee
+            r = action*self.rewards[self.current_tick] - self.transcost[self.current_tick]
         return r
     
     
@@ -281,22 +285,25 @@ class ForexEnv(gym.Env):
         # calculates the profit until the current state
         #
         if (self.position == Positions.Long):
-            currProfit = self.pip * (self.prices[self.current_tick] \
-                                          - self.prices[self.last_trade_tick]) \
-                                     / self.prices[self.last_trade_tick] - self.trade_fee
+            currProfit = self.pip * np.log(self.prices[self.current_tick] \
+                                     / self.prices[self.last_trade_tick]) - self.transcost[self.last_trade_tick]
         elif (self.position == Positions.Short):
-            currProfit = -self.pip * (self.prices[self.current_tick] \
-                                          - self.prices[self.last_trade_tick]) \
-                                    / self.prices[self.last_trade_tick] - self.trade_fee
+            currProfit = -self.pip * np.log(self.prices[self.current_tick] \
+                                    / self.prices[self.last_trade_tick]) - self.transcost[self.last_trade_tick]
         else:
             currProfit = 0.0
+
+        if (currProfit > 5):
+            currProfit = 5
+        elif (currProfit < -5):
+            currProfit = -5
 
         return currProfit
         
         
     
     def materialized_reward(self, action):
-        assert action in [0, 1, 2]
+        assert action in [-1, 0, 1]
 
         r = 0.
         r_long = 0.
@@ -305,11 +312,11 @@ class ForexEnv(gym.Env):
         short = 0
         hold = 0
         if (self.position == Positions.Long and action in (Actions.Hold.value, Actions.Sell.value)):
-            r = self.pip * (self.prices[self.current_tick] - self.prices[self.last_trade_tick]) - self.trade_fee
+            r = action*self.pip * (self.prices[self.current_tick] - self.prices[self.last_trade_tick]) - self.trade_fee
             r_long = r
             long = 1
         elif (self.position == Positions.Short and action in (Actions.Hold.value, Actions.Buy.value)):
-            r = -self.pip * (self.prices[self.current_tick] - self.prices[self.last_trade_tick]) - self.trade_fee
+            r = action*self.pip * (self.prices[self.current_tick] - self.prices[self.last_trade_tick]) - self.trade_fee
             r_short = r
             short = 1
         elif (self.position == Positions.Nothing and action in (Actions.Buy.value, Actions.Sell.value)):

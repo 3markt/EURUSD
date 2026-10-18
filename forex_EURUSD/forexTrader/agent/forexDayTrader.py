@@ -152,6 +152,9 @@ class ForexDayTrader:
             self.decision_model.eval()
             action_tt, _ = self.decision_model(state_tt)
             action = np.argmax(action_tt[-1, -1, :].detach().numpy().reshape(1, 1, 3))
+            # mapping der sell-action auf -1
+            if (action == 2):
+                action = -1
             
         return action
 
@@ -171,6 +174,8 @@ class ForexDayTrader:
         state = self.daily_state
         self.daily_state = np.array([])
         action = self.daily_action
+        # re-mapping der sell-action
+        action[action == -1] = 2
         self.daily_action = np.array([]).astype(int)
         reward = self.daily_reward
         self.daily_reward = np.array([])
@@ -202,6 +207,8 @@ class ForexDayTrader:
             self.dreaming_rate * target_mod
 
         # remember everything
+        # und die sell-action vor dem speichern wieder zurück mappen
+        action[action == 2] = -1
         self.memory.append([dt, 
                             batch_id, 
                             total_reward,

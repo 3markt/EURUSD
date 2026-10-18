@@ -91,7 +91,7 @@ class forexRLDayTrading:
         self.ts = 36
         self.bs = self.bt - self.ts
         self.ff = len(self.featureList)
-        self.tradeFee = 1.25
+        self.tradeFee = 1.0
         self.pip = 10000
         self.gamma = 0.75
         self.learning_rate = 0.1
@@ -503,17 +503,17 @@ class forexRLDayTrading:
        
         
        
-    def calcSingleReward(self, rewards, price, i, action):
+    def calcSingleReward(self, rewards, transcost, i, action):
         #
         # Berechnet den Reward an der Stelle i im Tag
         #
         r = 0
         if (action == 1):
             # reward for opening a Long position
-            r = rewards[i] - self.tradeFee
-        elif (action == 2):
+            r = action*rewards[i] - transcost[i]
+        elif (action == -1):
             # reward for opening a short position
-            r = -rewards[i] - self.tradeFee
+            r = action*rewards[i] - transcost[i]
                 
         return r
         
@@ -529,13 +529,16 @@ class forexRLDayTrading:
         #
         # Berechnen der Differenzen
         price = df_day['Close'].values
-        rewards = self.pip * np.diff(price, append=price[-1]) / price
+        rewards = self.pip * np.log(np.roll(price, -1) / price)
+        rewards[-1] = self.pip * np.log(price[-1] / price[-2])
+        rewards = np.clip(rewards, -5, 5)
+        transcost = self.pip * np.log(1 + ((self.trade_fee / self.pip) / price))
         #
         # Schleife über den Tag
         reward = np.full((self.bt, 3), 0.)
         for i in range(self.bt-1):
-            reward[i, 1] += self.calcSingleReward(rewards, price, i, 1)
-            reward[i, 2] += self.calcSingleReward(rewards, price, i, 2)
+            reward[i, 1] += self.calcSingleReward(rewards, transcost, i, 1)
+            reward[i, 2] += self.calcSingleReward(rewards, transcost, i, -1)
         
         position = np.array(self.bt*[0.]).astype(float)
         currProfit = np.array(self.bt*[0.]).astype(float)
@@ -892,7 +895,7 @@ class forexRLDayTrading:
                     action_hold += 1
                 elif (action == 1):
                     action_buy += 1
-                elif (action == 2):
+                elif (action == -1):
                     action_sell += 1
                     
                 if done:
