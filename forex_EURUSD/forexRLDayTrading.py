@@ -91,7 +91,7 @@ class forexRLDayTrading:
         self.ts = 36
         self.bs = self.bt - self.ts
         self.ff = len(self.featureList)
-        self.tradeFee = 1.0
+        self.trade_fee = 1.0
         self.pip = 10000
         self.gamma = 0.75
         self.learning_rate = 0.1
