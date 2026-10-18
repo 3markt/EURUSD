@@ -147,7 +147,6 @@ class ForexDayTrader:
 
         if np.random.random() < self.epsilon:
             action = self.env.action_space.sample()
-            print('im Agenten', action)
         else:
             state_tt = torch.from_numpy(state)
             self.decision_model.eval()
@@ -155,8 +154,8 @@ class ForexDayTrader:
             action = np.argmax(action_tt[-1, -1, :].detach().numpy().reshape(1, 1, 3))
             # mapping der sell-action auf -1
 
-            if (action == 2):
-                action = -1
+        if (action == 2):
+            action = -1
 
         return action
 

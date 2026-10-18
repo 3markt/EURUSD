@@ -11,6 +11,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.figure(figsize=(12, 8))
 
+class Actions(Enum):
+    Hold = 0
+    Buy = 1
+    Sell = -1
+
+
+
+"""
 path = '/home/uwe/Hope/data/raw/'
 
 df = pd.read_csv(path + 'EURUSD_Candlestick_5_m_BID_09.02.2025-08.10.2026.csv')
@@ -26,7 +34,6 @@ print(prices,
       logp_rewards,
       logp_transcost)
 
-"""
 start = 288
 end = 576
 x = range(end - start)
