@@ -1058,6 +1058,7 @@ training = True
 
 eurusdData = forexRLDayTrading('EURUSD')
 
+"""
 eurusdData.processCandle(startDt = fileStartDt)
 
 eurusdData.addEcoData()
@@ -1069,6 +1070,7 @@ eurusdData.formatFinalVersion(training,
 eurusdData.createABT(training)
 
 eurusdData.fitInitialModel()
+"""
 
 eurusdData.fitForexDayTrader()
 
