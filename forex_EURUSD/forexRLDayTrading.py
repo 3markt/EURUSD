@@ -858,7 +858,7 @@ class forexRLDayTrading:
         register(id='forex-v0', entry_point='forexTrader.envs.forexEnv:ForexEnv')        
 
         env = gym.make(id='forex-v0', 
-                       data_path=self.finalpath + 'RL-data/',
+                       data_path=self.finalpath,
                        window_size=self.ts, 
                        batch_size=self.bs,
                        training=training)

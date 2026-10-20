@@ -30,7 +30,8 @@ class ForexEnv(gym.Env):
 
     def __init__(self, data_path, window_size, batch_size, training):
 
-        self.data_path = data_path
+        self.data_path = data_path  + 'RL-data/'
+        self.current_path = data_path + 'current'
         self.ts = window_size
         self.bs = batch_size
         self.training = training
@@ -81,12 +82,18 @@ class ForexEnv(gym.Env):
              self.all_data = self.all_data.reshape(self.n_days, 5)
              self.batch_id = -1
                   
+        # current_profit variables
         self.mean_cp = 0.0
         self.std_cp = 1.0
-        
-        self.cnt_calculate_current_profit = 0
+        self.cnt_calculate_current_vars = 0
         self.sum_current_profit = 0.0
         self.sum2_current_profit = 0.0
+
+        # current_trade_length variables
+        self.mean_ctl = 0
+        self.std_ctl = 1
+        self.sum_current_trade_length = 0
+        self.sum2_current_trade_length = 0
         
         # spaces
         self.ff = self.all_data[0][3].shape[2]
@@ -222,7 +229,7 @@ class ForexEnv(gym.Env):
         # überschreiben der simulierten Position und Current Profit
         self.state[:-1, :2] = position_currProfit
         self.state[-1, 0] = self.position.value
-        self.state[-1, 1] = self.calculate_current_profit()
+        self.state[-1, 1] = self.calculate_current_vars()
 
         return np.float32(self.state).reshape(self.ts*self.ff)
 
@@ -280,7 +287,7 @@ class ForexEnv(gym.Env):
     
     
     
-    def calculate_current_profit(self):
+    def calculate_current_vars(self):
         #
         # calculates the profit until the current state
         #
@@ -292,6 +299,35 @@ class ForexEnv(gym.Env):
                                     / self.prices[self.last_trade_tick]) - self.transcost[self.last_trade_tick]
         else:
             currProfit = 0.0
+
+        self.cnt_calculate_current_vars += 1
+
+        # calculate current profit
+        self.sum_current_profit += currProfit
+        self.sum2_current_profit += currProfit ** 2
+        self.mean_cp = self.sum_current_profit / self.cnt_calculate_current_vars
+        self.std_cp = np.sqrt(self.sum2_current_profit / self.cnt_calculate_current_vars \
+                                - self.mean_cp ** 2)
+        if (self.std_cp == 0.0):
+            self.std_cp = 1.0
+
+        # calculate current trade length
+        currTradeLength = self.current_tick - self.last_trade_tick
+        self.sum_current_trade_length += currTradeLength
+        self.sum2_current_trade_length += currTradeLength ** 2
+        self.mean_ctl = self.sum_current_trade_length / self.cnt_calculate_current_vars
+        self.std_ctl = np.sqrt(self.sum2_current_trade_length / self.cnt_calculate_current_vars \
+                              - self.mean_ctl ** 2)
+        if (self.std_ctl == 0.0):
+            self.std_ctl = 1.0
+
+        if (self.cnt_calculate_current_vars % 500000 == 0):
+            pd.DataFrame([self.mean_cp, self.std_cp, self.mean_ctl, self.std_ctl],
+                         columns=['Mean Current Profit',
+                                  'STD Current Profit',
+                                  'Mean Current Trade Length',
+                                  'Std Current Trade Length']).to_csv(self.current_path + 'current_vars.csv',
+                                                                      index=False)
 
         if (currProfit > 5):
             currProfit = 5
