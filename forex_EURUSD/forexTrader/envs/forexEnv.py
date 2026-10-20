@@ -56,7 +56,7 @@ class ForexEnv(gym.Env):
         self.iter = 0
         
         # training files
-        self.dfiles = [f for f in listdir(data_path) if isfile(join(data_path, f)) \
+        self.dfiles = [f for f in listdir(self.data_path) if isfile(join(self.data_path, f)) \
                        and f[:3] == 'day']
         self.n_days = len(self.dfiles)
         
