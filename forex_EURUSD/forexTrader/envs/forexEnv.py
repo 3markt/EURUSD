@@ -294,11 +294,14 @@ class ForexEnv(gym.Env):
         if (self.position == Positions.Long):
             currProfit = self.pip * np.log(self.prices[self.current_tick] \
                                      / self.prices[self.last_trade_tick]) - self.transcost[self.last_trade_tick]
+            currTradeLength = self.current_tick - self.last_trade_tick
         elif (self.position == Positions.Short):
             currProfit = -self.pip * np.log(self.prices[self.current_tick] \
                                     / self.prices[self.last_trade_tick]) - self.transcost[self.last_trade_tick]
+            currTradeLength = self.current_tick - self.last_trade_tick
         else:
             currProfit = 0.0
+            currTradeLength = 0
 
         self.cnt_calculate_current_vars += 1
 
@@ -312,7 +315,6 @@ class ForexEnv(gym.Env):
             self.std_cp = 1.0
 
         # calculate current trade length
-        currTradeLength = self.current_tick - self.last_trade_tick
         self.sum_current_trade_length += currTradeLength
         self.sum2_current_trade_length += currTradeLength ** 2
         self.mean_ctl = self.sum_current_trade_length / self.cnt_calculate_current_vars
