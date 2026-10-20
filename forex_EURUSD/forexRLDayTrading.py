@@ -799,10 +799,10 @@ class forexRLDayTrading:
     
     def rate_ERscheduler(self, i, rate): 
         
-        if (rate > 0.1):
-            rate = rate * np.exp(-(1/(112350 + i)))
+        if (rate > 0.01):
+            rate = rate * np.exp(-(1/(12000 + i)))
         else:
-            rate = 0.1
+            rate = 0.01
             
         return rate
     
@@ -923,6 +923,7 @@ class forexRLDayTrading:
                            td_err[3],
                            td_err[4],
                            td_err[5],
+                           td_err[6],
                            self.dreaming_rate,
                            self.exploration_rate,
                            self.learning_rate])
@@ -947,6 +948,7 @@ class forexRLDayTrading:
                                                    'Avg-Buy-Action',
                                                    'Avg-Sell-Action',
                                                    'td_err Mean',
+                                                   'td_err Abs Mean'
                                                    'td_err Median',
                                                    'td_err Min',
                                                    'td_err Max',

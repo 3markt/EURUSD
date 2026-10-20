@@ -220,6 +220,7 @@ class ForexDayTrader:
         # ... und zum Schluss: berechne die Fehler-Statistik
         td_err = []
         td_err.append(np.mean(target_mod))
+        td_err.append(np.mean(np.abs(target_mod)))
         td_err.append(np.median(target_mod))
         td_err.append(np.min(target_mod))
         td_err.append(np.max(target_mod))
