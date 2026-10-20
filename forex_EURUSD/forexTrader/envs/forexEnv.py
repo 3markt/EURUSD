@@ -301,7 +301,7 @@ class ForexEnv(gym.Env):
             currTradeLength = self.current_tick - self.last_trade_tick
         else:
             currProfit = 0.0
-            currTradeLength = 0
+            currTradeLength = 1
 
         self.cnt_calculate_current_vars += 1
 
