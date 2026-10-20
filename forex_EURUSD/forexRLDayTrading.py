@@ -948,7 +948,7 @@ class forexRLDayTrading:
                                                    'Avg-Buy-Action',
                                                    'Avg-Sell-Action',
                                                    'td_err Mean',
-                                                   'td_err Abs Mean'
+                                                   'td_err Abs Mean',
                                                    'td_err Median',
                                                    'td_err Min',
                                                    'td_err Max',
