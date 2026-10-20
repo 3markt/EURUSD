@@ -324,12 +324,11 @@ class ForexEnv(gym.Env):
             self.std_ctl = 1.0
 
         if (self.cnt_calculate_current_vars % 500000 == 0):
-            pd.DataFrame([self.mean_cp, self.std_cp, self.mean_ctl, self.std_ctl],
-                         columns=['Mean Current Profit',
-                                  'STD Current Profit',
-                                  'Mean Current Trade Length',
-                                  'Std Current Trade Length']).to_csv(self.current_path + 'current_vars.csv',
-                                                                      index=False)
+            pd.DataFrame({'mean_cp': [self.mean_cp],
+                          'std_cp': [self.std_cp],
+                          'mean_ctl': [self.mean_ctl],
+                          'std_ctl': [self.std_ctl]}).to_csv(self.current_path + 'current_vars.csv',
+                                                             index=False)
 
         if (currProfit > 5):
             currProfit = 5
