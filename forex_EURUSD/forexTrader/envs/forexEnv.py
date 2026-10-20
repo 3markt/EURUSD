@@ -31,7 +31,7 @@ class ForexEnv(gym.Env):
     def __init__(self, data_path, window_size, batch_size, training):
 
         self.data_path = data_path  + 'RL-data/'
-        self.current_path = data_path + 'current'
+        self.current_path = data_path + 'current/'
         self.ts = window_size
         self.bs = batch_size
         self.training = training
