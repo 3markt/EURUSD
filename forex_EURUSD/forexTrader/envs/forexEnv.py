@@ -41,6 +41,7 @@ class ForexEnv(gym.Env):
         self.start_tick = 0
         self.end_tick = self.bs - 1
         self.trade_fee = 1.0
+        self.no_trade_fee = -0.05
 
         # episode
         self.done = False
@@ -258,7 +259,7 @@ class ForexEnv(gym.Env):
     def calculate_reward(self, action):
         assert action in [-1, 0, 1]
 
-        r = -0.01
+        r = self.no_trade_fee
         if (self.position == Positions.Nothing and action == Actions.Buy.value):
         # reward for opening a Long position
             r = action*self.rewards[self.current_tick] - self.transcost[self.current_tick]
@@ -267,10 +268,10 @@ class ForexEnv(gym.Env):
             r = action*self.rewards[self.current_tick] - self.transcost[self.current_tick]
         elif (self.position == Positions.Long and action == Actions.Hold.value):
         # reward for closing a long position
-            r = -0.01
+            r = self.no_trade_fee
         elif (self.position == Positions.Short and action == Actions.Hold.value):
         # reward for closing a short position
-            r = -0.01
+            r = self.no_trade_fee
         elif (self.position == Positions.Long and action == Actions.Buy.value):
         # reward for holding a long position - no trading fees
             r = action*self.rewards[self.current_tick]
