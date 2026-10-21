@@ -275,7 +275,7 @@ class ForexEnv(gym.Env):
         # reward for holding a long position - no trading fees
             r = action*self.rewards[self.current_tick]
         elif (self.position == Positions.Short and action == Actions.Sell.value):
-       # reward for holding a short position
+       # reward for holding a short position - no trading fees
             r = action*self.rewards[self.current_tick]
         elif (self.position == Positions.Long and action == Actions.Sell.value):
         # reward for closing a long position and opening a short one
@@ -283,6 +283,7 @@ class ForexEnv(gym.Env):
         elif (self.position == Positions.Short and action == Actions.Buy.value):
         # reward for closing a short position and opening a long one
             r = action*self.rewards[self.current_tick] - self.transcost[self.current_tick]
+
         return r
     
     
