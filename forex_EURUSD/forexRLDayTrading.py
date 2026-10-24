@@ -281,16 +281,18 @@ class forexRLDayTrading:
 
             total_energy = energies.sum()
 
-            if total_energy < 0:
-                print('wavelet transformation skip processing negative total energy', total_energy)
-                continue
+            # Fix: Fängt sowohl negative Werte als auch exakt 0 ab
+            if total_energy <= 0:
+                # Wenn keine Energie vorhanden ist, sind alle relativen Anteile 0
+                detail_energies = np.zeros_like(energies[1:])
+                approximation_energy = 0.0
+            else:
+                # Relative Energie der Detailkomponenten
+                # Reihenfolge: D_level, ..., D1
+                detail_energies = energies[1:] / total_energy
 
-            # Relative Energie der Detailkomponenten
-            # Reihenfolge: D_level, ..., D1
-            detail_energies = energies[1:] / total_energy
-
-            # Relative Energie der Approximation
-            approximation_energy = energies[0] / total_energy
+                # Relative Energie der Approximation
+                approximation_energy = energies[0] / total_energy
 
             # Gesamtenergie der Renditen im Fenster
             total_energy_raw = np.sum(x ** 2)
@@ -542,7 +544,7 @@ class forexRLDayTrading:
         # Zusammenfassen von Date und Time
         df['time'] = pd.to_datetime(df['Date'] + ' ' + df['Time'], dayfirst=True)
         #
-        # Umwandeln auf Europe/Berlin local tim
+        # Umwandeln auf Europe/Berlin local time
         df["time"] = df["time"].dt.tz_localize("Europe/Berlin")
         #df['time'] = df['time'] + pd.to_timedelta(-1, unit='h')
         #

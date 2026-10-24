@@ -112,16 +112,18 @@ def calculate_wavelet_features(
 
         total_energy = energies.sum()
 
+        # Fix: Fängt sowohl negative Werte als auch exakt 0 ab
         if total_energy <= 0:
-            print('Total energy problem:', total_energy)
-            continue
+            # Wenn keine Energie vorhanden ist, sind alle relativen Anteile 0
+            detail_energies = np.zeros_like(energies[1:])
+            approximation_energy = 0.0
+        else:
+            # Relative Energie der Detailkomponenten
+            # Reihenfolge: D_level, ..., D1
+            detail_energies = energies[1:] / total_energy
 
-        # Relative Energie der Detailkomponenten
-        # Reihenfolge: D_level, ..., D1
-        detail_energies = energies[1:] / total_energy
-
-        # Relative Energie der Approximation
-        approximation_energy = energies[0] / total_energy
+            # Relative Energie der Approximation
+            approximation_energy = energies[0] / total_energy
 
         # Gesamtenergie der Renditen im Fenster
         total_energy_raw = np.sum(x ** 2)
