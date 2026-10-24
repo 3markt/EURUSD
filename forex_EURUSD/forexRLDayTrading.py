@@ -259,6 +259,7 @@ class forexRLDayTrading:
             x = return_values[t - window + 1:t + 1]
 
             if not np.isfinite(x).all():
+                print('wavelet transformation skip processing x', x)
                 continue
 
             # Diskrete Wavelet-Transformation
@@ -280,6 +281,7 @@ class forexRLDayTrading:
             total_energy = energies.sum()
 
             if total_energy <= 0:
+                print('wavelet transformation skip processing negative total energy', total_energy)
                 continue
 
             # Relative Energie der Detailkomponenten
