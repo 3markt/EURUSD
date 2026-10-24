@@ -55,15 +55,11 @@ class ForexEnv(gym.Env):
         self.batch_duration = 500
         self.iter = 0
         
-        # training files
+        # Auswahl der training files
         self.dfiles = [f for f in listdir(self.data_path) if isfile(join(self.data_path, f)) \
                        and f[:3] == 'day']
         self.n_days = len(self.dfiles)
-        
-         self.days = np.random.choice(range(self.n_days),
-                                      size=self.n_batch,
-                                      replace=False)
-
+        self.days = np.random.choice(range(self.n_days), size=self.n_batch, replace=False)
         self.all_data = np.array((), dtype=object)
         for day in self.days:
             self.all_data = np.append(self.all_data, 
