@@ -9,6 +9,7 @@ Created on Sun Feb 26 10:07:49 2023
 import pandas as pd
 import numpy as np
 import random
+from datetime import timedelta
 import ta
 import sys
 import gc
@@ -352,7 +353,7 @@ class forexRLDayTrading:
         for sonntag in sonntage:
             #
             # Zugehöriger Freitag
-            freitag = sonntag - pd.Timedelta(days=2)
+            freitag = sonntag - timedelta(days=2)
             #
             # Zeilen des Sonntags und Freitags bestimmen
             mask_sonntag = df["_date"] == sonntag
