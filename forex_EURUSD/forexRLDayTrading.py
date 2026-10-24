@@ -541,8 +541,9 @@ class forexRLDayTrading:
         # Zusammenfassen von Date und Time
         df['time'] = pd.to_datetime(df['Date'] + ' ' + df['Time'], dayfirst=True)
         #
-        # Umrechung von lokaler auf GMT-Zeiten
-        df['time'] = df['time'] + pd.to_timedelta(-1, unit='h')
+        # Umwandeln auf Europe/Berlin local tim
+        df["time"] = df["time"].dt.tz_localize("Europe/Berlin")
+        #df['time'] = df['time'] + pd.to_timedelta(-1, unit='h')
         #
         # Zeit-Index Festlegen
         df.set_index(pd.DatetimeIndex(df.time), inplace=True)
