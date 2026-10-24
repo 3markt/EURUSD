@@ -329,34 +329,71 @@ class forexRLDayTrading:
             df = pd.concat([df, dfi])
             
         df.reset_index(drop=True, inplace=True)
-
-        # Sicherstellen, dass das Datetime-Format aktiv ist
-        df['ttime'] = pd.to_datetime(df['ttime'])
+        #
+        # Zeitstempel sicher als UTC interpretieren
+        df["ttime"] = pd.to_datetime(df["ttime"], utc=True)
         #
         # Addiere 5 Minuten zur Zeit, um das Label auf die rechte Seite zu bekommen
         df['ttime'] = df['ttime'] + pd.Timedelta(minutes=5)
-        df.to_csv(path + 'min5Candle_raw1.csv')
         #
-        # Wechsel Sommer-Winterzeit fehlerfrei lokalisieren (behebt sowohl den Herbst- als auch den Frühlings-Fehler)
-        df['ttime'] = df['ttime'].dt.tz_localize('Europe/Berlin', ambiguous='NaT', nonexistent='NaT')
-        df['ttime'] = df['ttime'].ffill()
+        # Chronologisch sortieren
+        df = df.sort_values("ttime").reset_index(drop=True)
         #
-        # die Einträge für Sonntagabend werden dem Freitag zugewiesen, so dass wir immer einen kompletten Tag voll haben
-        # Filter-Maske für Sonntagabend (22:00 Uhr bis 23:55 Uhr) erstellen
-        zeit_maske = (
-                (df['ttime'].dt.day_of_week == 6) &
-                (df['ttime'].dt.time >= pd.to_datetime('22:00:00').time()) &
-                (df['ttime'].dt.time <= pd.to_datetime('23:55:00').time())
+        # Ursprüngliches Datum und Wochentag bestimmen
+        df["_date"] = df["ttime"].dt.date
+        df["_weekday"] = df["ttime"].dt.dayofweek
+        #
+        # Alle Sonntagsdaten ermitteln
+        sonntage = sorted(
+            df.loc[df["_weekday"] == 6, "_date"].unique()
         )
         #
-        # Bei Treffern exakt 2 Tage abziehen (Sonntagabend wird zu Freitagabend)
-        df.loc[zeit_maske, 'ttime'] = df.loc[zeit_maske, 'ttime'] - pd.Timedelta(days=2)
+        # Verarbeitung der Sonntage
+        for sonntag in sonntage:
+            #
+            # Zugehöriger Freitag
+            freitag = sonntag - pd.Timedelta(days=2)
+            #
+            # Zeilen des Sonntags und Freitags bestimmen
+            mask_sonntag = df["_date"] == sonntag
+            mask_freitag = df["_date"] == freitag
+            #
+            if not mask_freitag.any():
+                raise ValueError(
+                    f"Kein Freitag im Datensatz gefunden: {freitag}"
+                )
+            #
+            # Sonntagsintervalle in ihrer zeitlichen Reihenfolge
+            sonntags_index = df.index[mask_sonntag]
+            #
+            # Letzter Zeitstempel des Freitags
+            letzter_freitag = df.loc[mask_freitag, "ttime"].max()
+            #
+            # Sonntagsintervalle direkt an den Freitag anhängen
+            neue_zeiten = pd.date_range(
+                start=letzter_freitag + pd.Timedelta(minutes=5),
+                periods=len(sonntags_index),
+                freq="5min"
+            )
+            #
+            df.loc[sonntags_index, "ttime"] = neue_zeiten
         #
-        # Chronologisch sortieren, damit die neuen Freitags-Daten an der richtigen Stelle sitzen
-        df = df.sort_values(by='ttime').reset_index(drop=True)
-        df.set_index(pd.DatetimeIndex(df.ttime, name='time'), inplace=True)
-        df.drop('ttime', inplace=True, axis=1)
-        df.to_csv(path + 'min5Candle_raw2.csv')
+        # Hilfsspalten entfernen
+        df = df.drop(columns=["_date", "_weekday"])
+        #
+        # Erneut chronologisch sortieren
+        df = df.sort_values("ttime").reset_index(drop=True)
+        #
+        # Kontrolle: doppelte Zeitstempel
+        print("Doppelte Zeitstempel:", df["ttime"].duplicated().sum())
+        #
+        # Anzahl der Intervalle pro UTC-Kalendertag
+        intervalle = df.groupby(df["ttime"].dt.date).size()
+        #
+        print("Tage mit nicht genau 288 Intervallen:")
+        print(intervalle[intervalle != 288])
+        #
+        df.to_csv(path + 'min5Candle_raw1.csv')
 
         """
         #
