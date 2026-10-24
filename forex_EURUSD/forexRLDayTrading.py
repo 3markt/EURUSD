@@ -280,7 +280,7 @@ class forexRLDayTrading:
 
             total_energy = energies.sum()
 
-            if total_energy <= 0:
+            if total_energy < 0:
                 print('wavelet transformation skip processing negative total energy', total_energy)
                 continue
 
@@ -367,10 +367,7 @@ class forexRLDayTrading:
         # Erzeugen der techCols
         min5Candle = self.createTechInd(df)
         # Erzeugen der waveletCols - nur für 5 Minuten-Skala
-        min5Candle = self.calculate_wavelet_features(min5Candle,
-                                                     window=128,
-                                                     wavelet="db4",
-                                                     level=4)
+        min5Candle = self.calculate_wavelet_features(min5Candle, window=128, wavelet="db4", level=4)
         min5Candle.to_csv(path + 'min5Candle.csv')
         
         # Konvertierung auf 15 Minuten und technischen Indikatoren

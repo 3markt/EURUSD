@@ -48,7 +48,7 @@ def calculate_wavelet_features(
     if level < 1:
         raise ValueError("level muss mindestens 1 sein.")
 
-    close = df['close']
+    close = df['Close']
 
     # Logarithmische Renditen aus den Schlusskursen
     returns = np.log(close / close.shift(1))
@@ -91,6 +91,7 @@ def calculate_wavelet_features(
         x = return_values[t - window + 1:t + 1]
 
         if not np.isfinite(x).all():
+            print('x-finite-problem:',x)
             continue
 
         # Diskrete Wavelet-Transformation
@@ -112,6 +113,7 @@ def calculate_wavelet_features(
         total_energy = energies.sum()
 
         if total_energy <= 0:
+            print('Total energy problem:', total_energy)
             continue
 
         # Relative Energie der Detailkomponenten
@@ -137,7 +139,7 @@ def calculate_wavelet_features(
 
 
 path = '/home/uwe/Hope/data/raw/'
-df = pd.read_csv(path + 'EURUSD_Candlestick_5_m_BID_09.02.2025-08.10.2026.csv')
+df = pd.read_csv(path + 'EURUSD_Candlestick_5_m_BID_19.02.2023-08.04.2023.csv')
 df = df.sort_index()
 
 df = calculate_wavelet_features(df,
