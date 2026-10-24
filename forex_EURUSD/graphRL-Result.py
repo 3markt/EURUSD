@@ -46,6 +46,7 @@ for f in files:
     avg_nshort = np.mean(dfi["#Short_Trades"])
     avg_nhold = np.mean(dfi["#Hold_Trades"])
     td_err_mean = np.mean(dfi["td_err Mean"])
+    td_err_abs_mean = np.mean(dfi["td_err Abs Mean"])
     td_err_median = np.mean(dfi["td_err Median"])
     td_err_min = np.mean(dfi["td_err Min"])
     td_err_max = np.mean(dfi["td_err Max"])
@@ -64,6 +65,7 @@ for f in files:
                 avg_nshort,
                 avg_nhold,
                 td_err_mean,
+                td_err_abs_mean,
                 td_err_median,
                 td_err_min,
                 td_err_max,
@@ -82,6 +84,7 @@ df = pd.DataFrame(cnt, columns=["Iteration",
                                 "Avg-#Short-Trades",
                                 "Avg-#Hold-Trades",
                                 "Avg-TD-Error-Mean",
+                                "Avg-TD-Error-Abs-Mean",
                                 "Avg-TD-Error-Median",
                                 "Avg-TD-Error-Min",
                                 "Avg-TD-Error-Max",
@@ -188,15 +191,20 @@ plt.title('TD Error Statistics')
 var = 'Avg-TD-Error-Mean'
 y = df[var]
 plt.scatter(x, y, label=var, linewidth=0.1)
+var = 'Avg-TD-Error-Abs-Mean'
+y = df[var]
+plt.scatter(x, y, label=var, linewidth=0.1)
 var = 'Avg-TD-Error-Median'
 y = df[var]
 plt.scatter(x, y, label=var, linewidth=0.1)
+"""
 var = 'Avg-TD-Error-Min'
 y = df[var]
 plt.scatter(x, y, label=var, linewidth=0.1)
 var = 'Avg-TD-Error-Max'
 y = df[var]
 plt.scatter(x, y, label=var, linewidth=0.1)
+"""
 var = 'Avg-TD-Error-P10'
 y = df[var]
 plt.scatter(x, y, label=var, linewidth=0.1)

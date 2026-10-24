@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 
 def calculate_wavelet_features(
-    close: pd.Series,
+    df: pd.DataFrame,
     window: int = 128,
     wavelet: str = "db4",
     level: int = 4
@@ -24,8 +24,8 @@ def calculate_wavelet_features(
 
     Parameter
     ---------
-    close:
-        Zeitreihe der EURUSD-Schlusskurse auf 5-Minuten-Basis.
+    df:
+        pd.DataFrame mit Spalte Close für Zeitreihe der EURUSD-Schlusskurse auf 5-Minuten-Basis.
     window:
         Anzahl vergangener Renditen im rollierenden Fenster.
     wavelet:
@@ -47,6 +47,8 @@ def calculate_wavelet_features(
 
     if level < 1:
         raise ValueError("level muss mindestens 1 sein.")
+
+    close = df['close']
 
     # Logarithmische Renditen aus den Schlusskursen
     returns = np.log(close / close.shift(1))
@@ -129,40 +131,19 @@ def calculate_wavelet_features(
 
         result.iloc[t, :] = values
 
-    return result
+    df = pd.concat([df, result], axis=1)
+    return df
 
 
 
 path = '/home/uwe/Hope/data/raw/'
-df = pd.read_csv(path + 'EURUSD_20250209_20261008_M5.csv')
+df = pd.read_csv(path + 'EURUSD_Candlestick_5_m_BID_09.02.2025-08.10.2026.csv')
 df = df.sort_index()
 
-wavelet_features = calculate_wavelet_features(close=df["close"],window=128,wavelet="db4",level=4)
-wav_df = wavelet_features.dropna()
-wav_df.to_csv(path + 'wavelets.csv', index=False)
+df = calculate_wavelet_features(df,
+                                window=128,
+                                wavelet="db4",
+                                level=4)
+print(df.head(20))
+df.to_csv(path + 'wavelets.csv')
 
-print(wav_df.head(20))
-
-# und jetzt die graphik
-plt.figure(figsize=(12, 8)) # Schön groß machen!
-l = 300
-x = range(l)
-plt.title('Log Profit')
-var = 'Log Profit'
-log_close = np.log(df["close"]/df["close"].shift(1))
-y = log_close.iloc[128:128+l]
-plt.ylabel(var)
-plt.scatter(x, y, label=var, linewidth=0.1)
-plt.grid()
-plt.show()
-plt.figure(figsize=(12, 8)) # Schön groß machen!
-y = wav_df['energy_D4'].iloc[:l]
-plt.scatter(x, y, label=var, linewidth=0.1)
-y = wav_df['energy_D3'].iloc[:l]
-plt.scatter(x, y, label=var, linewidth=0.1)
-y = wav_df['energy_D2'].iloc[:l]
-plt.scatter(x, y, label=var, linewidth=0.1)
-y = wav_df['energy_D1'].iloc[:l]
-plt.scatter(x, y, label=var, linewidth=0.1)
-plt.grid()
-plt.show()

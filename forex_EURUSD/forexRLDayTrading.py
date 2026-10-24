@@ -25,6 +25,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data as data
+import pywt
 from forexTrader.envs import forexEnv
 from forexTrader.agent import ForexDayTrader 
 
@@ -61,6 +62,8 @@ class forexRLDayTrading:
                 'macd_1H', 'macd_d_1H', 'bb_h_1H', 'bb_l_1H', 'rsi_1H',
                 'WL_4H', 'macd_4H', 'macd_d_4H', 'bb_h_4H', 'bb_l_4H', 'rsi_4H',
                 'WL_1D', 'macd_1D', 'macd_d_1D', 'bb_h_1D', 'bb_l_1D', 'rsi_1D']
+
+    waveletCols = ['w_energy_D4', 'w_energy_D3', 'w_energy_D2', 'w_energy_D1', 'w_energy_A4']
     
     ecoCols = ['CPI_US' , 'CPI_EU', 
                'Zins_US', 'Zins_EU', 
@@ -72,11 +75,11 @@ class forexRLDayTrading:
                'Schock_Arbeitsmarkt_US', 'Schock_Arbeitsmarkt_EU',
                'Schock_Konjunktur_US', 'Schock_Konjunktur_EU']
         
-    scaledCols = techCols + ecoCols
+    scaledCols = techCols + ecoCols + waveletCols
 
     target = ['Reward-Hold', 'Reward-Buy', 'Reward-Sell']
 
-    featureList = ['Position', 'currProfit'] + techCols + ecoCols
+    featureList = ['Position', 'currProfit'] + techCols + ecoCols + waveletCols
     
     
     def __init__(self, currency):
@@ -176,9 +179,132 @@ class forexRLDayTrading:
         df = df.dropna()
 
         return df
-    
-    
-    
+
+
+
+    def calculate_wavelet_features(self,
+                                   df: pd.DataFrame,
+                                   window: int = 128,
+                                   wavelet: str = "db4",
+                                   level: int = 4) -> pd.DataFrame:
+        """
+        Berechnet kausale Wavelet-Features aus EURUSD-Schlusskursen.
+
+        Parameter
+        ---------
+        df:
+            pd.DataFrame mit Spalte Close für Zeitreihe der EURUSD-Schlusskurse auf 5-Minuten-Basis.
+        window:
+            Anzahl vergangener Renditen im rollierenden Fenster.
+        wavelet:
+            Verwendete Wavelet-Familie.
+        level:
+            Zerlegungstiefe.
+
+        Rückgabe
+        --------
+        DataFrame mit fünf normalisierten Wavelet-Energie-Features
+        und einem Feature für die Gesamtenergie.
+
+        Es werden ausschließlich Daten bis zum jeweiligen
+        Zeitpunkt t verwendet.
+        """
+
+        if window < 1:
+            raise ValueError("window muss mindestens 1 sein.")
+
+        if level < 1:
+            raise ValueError("level muss mindestens 1 sein.")
+
+        close = df['Close']
+
+        # Logarithmische Renditen aus den Schlusskursen
+        returns = np.log(close / close.shift(1))
+
+        # Maximale sinnvolle Zerlegungstiefe prüfen
+        w = pywt.Wavelet(wavelet)
+        max_level = pywt.dwt_max_level(window, w.dec_len)
+
+        if level > max_level:
+            raise ValueError(
+                f"Zerlegungstiefe {level} ist zu hoch. "
+                f"Maximal zulässig für window={window}: {max_level}"
+            )
+
+        # Namen der Features
+        columns = [
+            f"w_energy_D{i}"
+            for i in range(level, 0, -1)
+        ]
+
+        columns += [
+            f"w_energy_A{level}",
+            "w_total_energy"
+        ]
+
+        result = pd.DataFrame(
+            np.nan,
+            index=close.index,
+            columns=columns,
+            dtype=float
+        )
+
+        # Berechnung für jedes 5-Minuten-Intervall
+        return_values = returns.to_numpy()
+
+        for t in range(window, len(close)):
+
+            # Ausschließlich die letzten window Renditen
+            # bis einschließlich Zeitpunkt t
+            x = return_values[t - window + 1:t + 1]
+
+            if not np.isfinite(x).all():
+                continue
+
+            # Diskrete Wavelet-Transformation
+            coeffs = pywt.wavedec(
+                x,
+                wavelet=wavelet,
+                mode="symmetric",
+                level=level
+            )
+
+            # PyWavelets liefert:
+            # [cA_level, cD_level, ..., cD2, cD1]
+
+            energies = np.array([
+                np.sum(c ** 2)
+                for c in coeffs
+            ])
+
+            total_energy = energies.sum()
+
+            if total_energy <= 0:
+                continue
+
+            # Relative Energie der Detailkomponenten
+            # Reihenfolge: D_level, ..., D1
+            detail_energies = energies[1:] / total_energy
+
+            # Relative Energie der Approximation
+            approximation_energy = energies[0] / total_energy
+
+            # Gesamtenergie der Renditen im Fenster
+            total_energy_raw = np.sum(x ** 2)
+
+            values = np.concatenate([
+                detail_energies,
+                [approximation_energy, total_energy_raw]
+            ])
+
+            result.iloc[t, :] = values
+
+        df = pd.concat([df, result], axis=1)
+        df = df.dropna()
+
+        return df
+
+
         
     def processCandle(self, startDt = '01.01.2007'):
         #
@@ -231,10 +357,18 @@ class forexRLDayTrading:
         path = self.processedpath + '/forexCandle/'
         
         #
-        # Konvertierung auf andere Zeitskalen und Erzeugen der technischen Indikatoren
+        # Konvertierung auf andere Zeitskalen, Erzeugen der technischen Indikatoren und Erzeugen der Wavelet-Features
+        # für 5 Minuten-Skala
         #
         # 5 Minuten müssen nicht konvertiert werden
+        #
+        # Erzeugen der techCols
         min5Candle = self.createTechInd(df)
+        # Erzeugen der waveletCols - nur für 5 Minuten-Skala
+        min5Candle = self.calculate_wavelet_features(min5Candle,
+                                                     window=128,
+                                                     wavelet="db4",
+                                                     level=4)
         min5Candle.to_csv(path + 'min5Candle.csv')
         
         # Konvertierung auf 15 Minuten und technischen Indikatoren
@@ -299,7 +433,7 @@ class forexRLDayTrading:
         df_all.rename({'time':'ttime'}, axis=1, inplace=True)
         df_all.set_index(pd.DatetimeIndex(df_all.ttime, name='time'), 
                          inplace=True)
-        self.df_all = df_all[['Close'] + self.techCols]
+        self.df_all = df_all[['Close'] + self.techCols + self.waveletCols]
 
 
 
@@ -437,7 +571,6 @@ class forexRLDayTrading:
         
 
     def formatFinalVersion(self,
-                           training,
                            startDt = '2008-01-01 00:00:00',
                            endDt = '2023-02-16 23:55:00'):
         #
@@ -447,7 +580,7 @@ class forexRLDayTrading:
         print('Anzahl Beobachtungen vor Cleanup', len(self.df_all))
         sys.stdout.flush()
   
-        self.df_all = self.df_all[['Close'] + self.techCols + self.ecoCols]
+        self.df_all = self.df_all[['Close'] + self.techCols + self.ecoCols + self.waveletCols]
         self.df_all = self.df_all.loc[self.df_all.index >= startDt]
         self.df_all = self.df_all.loc[self.df_all.index <= endDt]
         
@@ -466,26 +599,20 @@ class forexRLDayTrading:
         print('Anzahl fehlender Werte =', n_nan)
         self.df_all[self.df_all.isnull()].to_csv(cpath + 'df_all_isnull.csv')
         self.df_all.to_csv(cpath + 'df_all.csv')
-        
-        if training:
-            #
-            # Berechne Mittelwert und Std für Skalierung und Speichere diese
-            # als pickle-files
-            df_mean = self.df_all[self.scaledCols].mean()
-            df_mean.to_pickle(cpath + 'df_all_mean.pkl')
-            df_mean.to_csv(cpath + 'df_all_mean.csv')
-            df_std = self.df_all[self.scaledCols].std()
-            df_std.to_pickle(cpath + 'df_all_std.pkl')
-            df_std.to_csv(cpath + 'df_all_std.csv')
+
+        #
+        # Berechne Mittelwert und Std für Skalierung und Speichere diese
+        # als pickle-files
+        df_mean = self.df_all[self.scaledCols].mean()
+        df_mean.to_pickle(cpath + 'df_all_mean.pkl')
+        df_mean.to_csv(cpath + 'df_all_mean.csv')
+        df_std = self.df_all[self.scaledCols].std()
+        df_std.to_pickle(cpath + 'df_all_std.pkl')
+        df_std.to_csv(cpath + 'df_all_std.csv')
             
-            pd.DataFrame(self.schockStandardize, columns=['name', 'mean', 'std']) \
+        pd.DataFrame(self.schockStandardize, columns=['name', 'mean', 'std']) \
                 .to_csv(cpath + 'schockStandardize.csv', index=False)
-        else:
-            #
-            # Mittelwert und Std müssen gelesen werden
-            df_mean = pd.read_pickle(cpath + 'df_all_mean.pkl')
-            df_std = pd.read_pickle(cpath + 'df_all_std.pkl')
- 
+
         #
         # Skalieren der Daten           
         self.df_all[self.scaledCols] = (self.df_all[self.scaledCols] - df_mean)/df_std
@@ -613,7 +740,7 @@ class forexRLDayTrading:
     
 
 
-    def createABT(self, training):
+    def createABT(self):
         #
         # erzeugt die Analytical Base Table pro Tag indem
         #   1. die initialen Rewards mit den initialen Positionen berechnet
@@ -630,42 +757,28 @@ class forexRLDayTrading:
             #
             # Berechne die initiale Belohnung
             df_day = self.calcInitReward(df_day)
-            
-            if training:
-                #
-                # packe die Daten in eine Sequenz der Länge 72 für initiales Training
-                x, y = self.packInitXY(df_day, 
-                                       self.bs, 
-                                       self.ts, 
-                                       self.featureList, 
-                                       self.target)
+
+            #
+            # packe die Daten in eine Sequenz der Länge 72 für initiales Training
+            x, y = self.packInitXY(df_day,
+                                   self.bs,
+                                   self.ts,
+                                   self.featureList,
+                                   self.target)
                 
-                np.save(self.finalpath + 'X/x-' + day.strftime('%Y-%m-%d') + '.npy', x)
-                np.save(self.finalpath + 'Y/y-' + day.strftime('%Y-%m-%d') + '.npy', y)
-                #
-                # packe die Daten in eine Sequenz der Länge 72 für RL Training
-                all_data = self.packRLXY(df_day,
-                                         self.days.index(day),
-                                         self.bs, 
-                                         self.ts, 
-                                         self.featureList, 
-                                         self.target)
+            np.save(self.finalpath + 'X/x-' + day.strftime('%Y-%m-%d') + '.npy', x)
+            np.save(self.finalpath + 'Y/y-' + day.strftime('%Y-%m-%d') + '.npy', y)
+            #
+            # packe die Daten in eine Sequenz der Länge 72 für RL Training
+            all_data = self.packRLXY(df_day,
+                                     self.days.index(day),
+                                     self.bs,
+                                     self.ts,
+                                     self.featureList,
+                                     self.target)
                 
-                np.save(self.finalpath + 'RL-data/day-' + \
+            np.save(self.finalpath + 'RL-data/day-' + \
                         day.strftime('%Y-%m-%d') + '.npy', all_data)
-            else:
-                #
-                # packe die Daten in eine Sequenz von 72 für die Vorhersage
-                predict_data = self.packRLXY(df_day,
-                                            self.days.index(day),
-                                            self.bs, 
-                                            self.ts, 
-                                            self.featureList, 
-                                            self.target)
-                
-                np.save(self.finalpath + 'exploit-data/day-' + \
-                        day.strftime('%Y-%m-%d') + '.npy', predict_data)
-                  
 
     
     def initLR_scheduler(self, i, rate): 
@@ -828,7 +941,6 @@ class forexRLDayTrading:
         nameTmpModel = 'tmpModel'
         pathBestModel = self.finalpath + 'model/' + nameBestModel + '/'
         maxAvgTotalReward = -999.99
-        training = True
         # sicherstellen, dass Model-Pfad existiert
         if (not isdir(pathBestModel)):
             makedirs(pathBestModel)
@@ -860,8 +972,7 @@ class forexRLDayTrading:
         env = gym.make(id='forex-v0', 
                        data_path=self.finalpath,
                        window_size=self.ts, 
-                       batch_size=self.bs,
-                       training=training)
+                       batch_size=self.bs)
         trader = ForexDayTrader(env, 
                                 self.finalpath, 
                                 init_weight_name,
@@ -981,103 +1092,27 @@ class forexRLDayTrading:
                     self.last_best_upd = 0
                 result = []
 
-        
-    
-"""    
-    def exploitForexDayTrader(self):
-        
-        decision_model = self.create_model(1)
-        training = False
-        
-        env_dict = gym.envs.registration.registry.env_specs.copy()
-        for env in env_dict:
-            if 'forex-v0' in env:
-                del gym.envs.registration.registry.env_specs[env]
-        
-        register(id='forex-v0', entry_point='forexTrader.envs.forexEnv:ForexEnv')
-        dpath = self.finalpath + 'exploit-data/'
-        env = gym.make(id='forex-v0', 
-                       data_path=dpath, 
-                       window_size=self.ts, 
-                       batch_size=self.bs,
-                       training=training)
-        
-        
-        dfiles = [f for f in listdir(dpath) if isfile(join(dpath, f)) \
-                  and f[:3] == 'day']
-        n_days = len(dfiles)
-        
-        result = []
-        print(n_days)
-        for day in range(n_days):
-            print(day)
-            #
-            # neuer Tag, neues Glück
-            state = env.reset()
-            state = state.reshape(1, self.ts, len(self.featureList))
-            
-            for j in range(self.bs):
-                
-                # batch loop
-                action = np.argmax(decision_model.predict(state, batch_size=1)[0])
-                new_state, reward, done, info = env.step(action)
-                new_state = new_state.reshape(1,
-                                              self.ts,
-                                              len(self.featureList))
-                print(info)
-
-                if done:
-                    result.append([day, 
-                                   info["datetime"][:10], 
-                                   info["batch_id"], 
-                                   info["total_reward"],
-                                   info["total_reward_long"],
-                                   info["total_reward_short"],
-                                   info["n_long_trades"],
-                                   info["n_short_trades"]])
-                else:
-                    state = new_state
-            
-            
-     
-        pd.DataFrame(result, columns=['Iteration',
-                                      'DateTime',
-                                       'Batch-ID',
-                                      'Total-Reward',
-                                      'Long-Reward',
-                                      'Short_Reward',
-                                      '#Long_Trades',
-                                      '#Short_Trades']).to_csv(self.finalpath \
-                                                               + 'result/exploitResults.csv', 
-                                                               index=False)
- """       
                                                                
                                                                
 fileStartDt = '01.01.2003'
 periodStartDt = '2005-01-02 00:00:00'
 periodEndDt = '2024-12-31 23:55:00'
-training = True
 
 eurusdData = forexRLDayTrading('EURUSD')
 
-"""
 eurusdData.processCandle(startDt = fileStartDt)
 
 eurusdData.addEcoData()
 
-eurusdData.formatFinalVersion(training,
-                              startDt = periodStartDt,
+eurusdData.formatFinalVersion(startDt = periodStartDt,
                               endDt = periodEndDt)
 
-eurusdData.createABT(training)
+eurusdData.createABT()
 
 eurusdData.fitInitialModel()
-"""
 
 eurusdData.fitForexDayTrader()
 
-
-#eurusdData.exploitForexDayTrader()
 
 
 
