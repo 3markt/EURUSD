@@ -354,6 +354,9 @@ class forexRLDayTrading:
         #
         # Chronologisch sortieren, damit die neuen Freitags-Daten an der richtigen Stelle sitzen
         df = df.sort_values(by='ttime').reset_index(drop=True)
+        df.set_index(pd.DatetimeIndex(df.ttime, name='time'), inplace=True)
+        df.drop('ttime', inplace=True, axis=1)
+        df.to_csv(path + 'min5Candle_raw2.csv')
 
         """
         #
@@ -389,7 +392,6 @@ class forexRLDayTrading:
         #
         # Erzeugen der techCols
         min5Candle = self.createTechInd(df)
-        min5Candle.to_csv(path + 'min5Candle_raw5.csv')
         # Erzeugen der waveletCols - nur für 5 Minuten-Skala
         min5Candle = self.calculate_wavelet_features(min5Candle, window=128, wavelet="db4", level=4)
         min5Candle.to_csv(path + 'min5Candle.csv')
