@@ -75,12 +75,13 @@ class forexRLDayTrading:
                'Schock_Arbeitsmarkt_US', 'Schock_Arbeitsmarkt_EU',
                'Schock_Konjunktur_US', 'Schock_Konjunktur_EU']
         
+#    scaledCols = techCols + ecoCols
     scaledCols = techCols + ecoCols + waveletCols
 
     target = ['Reward-Hold', 'Reward-Buy', 'Reward-Sell']
 
+#    featureList = ['Position', 'currProfit'] + techCols + ecoCols
     featureList = ['Position', 'currProfit'] + techCols + ecoCols + waveletCols
-    
     
     def __init__(self, currency):
         
@@ -313,6 +314,7 @@ class forexRLDayTrading:
         # Erzeugen der Dateiliste
         #
         cpath = self.rawpath + 'forexCandle/'
+        path = self.processedpath + '/forexCandle/'
         cfiles = [f for f in listdir(cpath) if isfile(join(cpath, f)) and \
                     f[:6] == self.currency and f[27:38] >= startDt]
         cfiles.sort()
@@ -327,16 +329,37 @@ class forexRLDayTrading:
             df = pd.concat([df, dfi])
             
         df.reset_index(drop=True, inplace=True)
+
+        # Sicherstellen, dass das Datetime-Format aktiv ist
+        df['ttime'] = pd.to_datetime(df['ttime'])
         #
         # Addiere 5 Minuten zur Zeit, um das Label auf die rechte Seite zu bekommen
         df['ttime'] = df['ttime'] + pd.Timedelta(minutes=5)
+        df.to_csv(path + 'min5Candle_raw1.csv')
         #
-        # Verschieben der Eröffnungstransaktionen vom Sonntag auf den Freitag
-        df.loc[df['ttime'].dt.dayofweek == 6, 'ttime'] = df['ttime'] \
-                                                    - pd.to_timedelta(2, 'D')
+        # Wechsel Sommer-Winterzeit fehlerfrei lokalisieren (behebt sowohl den Herbst- als auch den Frühlings-Fehler)
+        df['ttime'] = df['ttime'].dt.tz_localize('Europe/Berlin', ambiguous='NaT', nonexistent='NaT')
+        df['ttime'] = df['ttime'].ffill()
+        #
+        # die Einträge für Sonntagabend werden dem Freitag zugewiesen, so dass wir immer einen kompletten Tag voll haben
+        # Filter-Maske für Sonntagabend (22:00 Uhr bis 23:55 Uhr) erstellen
+        zeit_maske = (
+                (df['ttime'].dt.day_of_week == 6) &
+                (df['ttime'].dt.time >= pd.to_datetime('22:00:00').time()) &
+                (df['ttime'].dt.time <= pd.to_datetime('23:55:00').time())
+        )
+        #
+        # Bei Treffern exakt 2 Tage abziehen (Sonntagabend wird zu Freitagabend)
+        df.loc[zeit_maske, 'ttime'] = df.loc[zeit_maske, 'ttime'] - pd.Timedelta(days=2)
+        #
+        # Chronologisch sortieren, damit die neuen Freitags-Daten an der richtigen Stelle sitzen
+        df = df.sort_values(by='ttime').reset_index(drop=True)
+
+        """
         #
         # Beim Wechsel von Sommer- auf Winterzeit gibt es Überschneidungen,
         # die gelöscht werden müssen
+        df.to_csv(path + 'min5Candle_raw2.csv')
         df.drop_duplicates(subset=['ttime'], 
                            keep='first', 
                            inplace=True, 
@@ -346,6 +369,7 @@ class forexRLDayTrading:
         df = df.sort_values(by='ttime')
         df.set_index(pd.DatetimeIndex(df.ttime, name='time'), inplace=True)
         df.drop('ttime', inplace=True, axis=1)
+        df.to_csv(path + 'min5Candle_raw3.csv')
         #
         # Auffüllen von fehlenden Werte: aufgrund vom Wechsel von Winter-
         # auf Sommerzeit (es fehlt dann 1 Stunde), oder aufgrund von System-
@@ -355,9 +379,8 @@ class forexRLDayTrading:
         # Löschen der Samstage und Sonntage
         df = df[(df.index.weekday != 5)]
         df = df[(df.index.weekday != 6)]
-
-        path = self.processedpath + '/forexCandle/'
-        
+        df.to_csv(path + 'min5Candle_raw4.csv')
+        """
         #
         # Konvertierung auf andere Zeitskalen, Erzeugen der technischen Indikatoren und Erzeugen der Wavelet-Features
         # für 5 Minuten-Skala
@@ -366,6 +389,7 @@ class forexRLDayTrading:
         #
         # Erzeugen der techCols
         min5Candle = self.createTechInd(df)
+        min5Candle.to_csv(path + 'min5Candle_raw5.csv')
         # Erzeugen der waveletCols - nur für 5 Minuten-Skala
         min5Candle = self.calculate_wavelet_features(min5Candle, window=128, wavelet="db4", level=4)
         min5Candle.to_csv(path + 'min5Candle.csv')
@@ -432,8 +456,8 @@ class forexRLDayTrading:
         df_all.rename({'time':'ttime'}, axis=1, inplace=True)
         df_all.set_index(pd.DatetimeIndex(df_all.ttime, name='time'), 
                          inplace=True)
+#        self.df_all = df_all[['Close'] + self.techCols]
         self.df_all = df_all[['Close'] + self.techCols + self.waveletCols]
-
 
 
     def mergeEcoFeature(self, df_eco, name):
@@ -579,6 +603,7 @@ class forexRLDayTrading:
         print('Anzahl Beobachtungen vor Cleanup', len(self.df_all))
         sys.stdout.flush()
   
+#        self.df_all = self.df_all[['Close'] + self.techCols + self.ecoCols]
         self.df_all = self.df_all[['Close'] + self.techCols + self.ecoCols + self.waveletCols]
         self.df_all = self.df_all.loc[self.df_all.index >= startDt]
         self.df_all = self.df_all.loc[self.df_all.index <= endDt]
