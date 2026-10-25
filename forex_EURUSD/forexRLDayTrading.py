@@ -63,7 +63,7 @@ class forexRLDayTrading:
                 'WL_4H', 'macd_4H', 'macd_d_4H', 'bb_h_4H', 'bb_l_4H', 'rsi_4H',
                 'WL_1D', 'macd_1D', 'macd_d_1D', 'bb_h_1D', 'bb_l_1D', 'rsi_1D']
 
-    waveletCols = ['w_energy_D4', 'w_energy_D3', 'w_energy_D2', 'w_energy_D1', 'w_energy_A4']
+    waveletCols = ['wavelet_energy_D4', 'wavelet_energy_D3', 'wavelet_energy_D2', 'wavelet_energy_D1']
     
     ecoCols = ['CPI_US' , 'CPI_EU', 
                'Zins_US', 'Zins_EU', 
