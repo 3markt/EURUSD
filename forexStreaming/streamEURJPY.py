@@ -34,7 +34,7 @@ def getLatestForexRaw():
     try:
         db_connect = psycopg2.connect(database = "dreimarktdb", 
                                       user = "chitlom", 
-                                      password = "Pampe1muse", 
+                                      password = "p1mP#lmuse",
                                       host = "localhost", 
                                       port = "5432")
         
