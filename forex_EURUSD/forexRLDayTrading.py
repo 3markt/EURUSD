@@ -183,18 +183,19 @@ class forexRLDayTrading:
 
 
 
-    def calculate_wavelet_features(self,
-                                   df: pd.DataFrame,
-                                   window: int = 128,
-                                   wavelet: str = "db4",
-                                   level: int = 4) -> pd.DataFrame:
+    def calculate_wavelet_features(
+            df: pd.DataFrame,
+            window: int = 128,
+            wavelet: str = "db4",
+            level: int = 4
+    ) -> pd.DataFrame:
         """
         Berechnet kausale Wavelet-Features aus EURUSD-Schlusskursen.
 
         Parameter
         ---------
-        df:
-            pd.DataFrame mit Spalte Close für Zeitreihe der EURUSD-Schlusskurse auf 5-Minuten-Basis.
+        close:
+            Zeitreihe der EURUSD-Schlusskurse auf 5-Minuten-Basis.
         window:
             Anzahl vergangener Renditen im rollierenden Fenster.
         wavelet:
@@ -234,13 +235,13 @@ class forexRLDayTrading:
 
         # Namen der Features
         columns = [
-            f"w_energy_D{i}"
+            f"wavelet_energy_D{i}"
             for i in range(level, 0, -1)
         ]
 
         columns += [
-            f"w_energy_A{level}",
-            "w_total_energy"
+            f"wavelet_energy_A{level}",
+            "wavelet_total_energy"
         ]
 
         result = pd.DataFrame(
@@ -260,7 +261,7 @@ class forexRLDayTrading:
             x = return_values[t - window + 1:t + 1]
 
             if not np.isfinite(x).all():
-                print('wavelet transformation skip processing x', x)
+                print('in wavelet: x is not finit', x)
                 continue
 
             # Diskrete Wavelet-Transformation
@@ -281,18 +282,16 @@ class forexRLDayTrading:
 
             total_energy = energies.sum()
 
-            # Fix: Fängt sowohl negative Werte als auch exakt 0 ab
             if total_energy <= 0:
-                # Wenn keine Energie vorhanden ist, sind alle relativen Anteile 0
-                detail_energies = np.zeros_like(energies[1:])
-                approximation_energy = 0.0
-            else:
-                # Relative Energie der Detailkomponenten
-                # Reihenfolge: D_level, ..., D1
-                detail_energies = energies[1:] / total_energy
+                print('in wavelet: total_energy <= 0', total_energy)
+                continue
 
-                # Relative Energie der Approximation
-                approximation_energy = energies[0] / total_energy
+            # Relative Energie der Detailkomponenten
+            # Reihenfolge: D_level, ..., D1
+            detail_energies = energies[1:] / total_energy
+
+            # Relative Energie der Approximation
+            approximation_energy = energies[0] / total_energy
 
             # Gesamtenergie der Renditen im Fenster
             total_energy_raw = np.sum(x ** 2)
@@ -329,53 +328,41 @@ class forexRLDayTrading:
             dfi.rename({'Gmt time':'ttime'}, inplace=True, axis=1)
             dfi = dfi[['ttime', 'Open', 'High', 'Low', 'Close', ]]
             df = pd.concat([df, dfi])
-            
-        df.reset_index(drop=True, inplace=True)
 
+        #
+        # re-initialisieren
+        df.reset_index(drop=True, inplace=True)
+        #
         # Sicherstellen, dass das Datetime-Format aktiv ist
         df['ttime'] = pd.to_datetime(df['ttime'])
+        #
+        # und vorsichtshalber nochmals sortieren
+        df = df.sort_values(by='ttime').reset_index(drop=True)
         #
         # Addiere 5 Minuten zur Zeit, um das Label auf die rechte Seite zu bekommen
         df['ttime'] = df['ttime'] + pd.Timedelta(minutes=5)
         #
-        # Wechsel Sommer-Winterzeit fehlerfrei lokalisieren (behebt sowohl den Herbst- als auch den Frühlings-Fehler)
-        df['ttime'] = df['ttime'].dt.tz_localize('Europe/Berlin', ambiguous='NaT', nonexistent='NaT')
-        df['ttime'] = df['ttime'].ffill()
-        #
-        # die Einträge für Sonntagabend werden dem Freitag zugewiesen, so dass wir immer einen kompletten Tag voll haben
-        # Filter-Maske für Sonntagabend (22:00 Uhr bis 23:55 Uhr) erstellen
-        zeit_maske = (
-                (df['ttime'].dt.day_of_week == 6) &
-                (df['ttime'].dt.time >= pd.to_datetime('22:00:00').time()) &
-                (df['ttime'].dt.time <= pd.to_datetime('23:55:00').time())
-        )
-        #
-        # Bei Treffern exakt 2 Tage abziehen (Sonntagabend wird zu Freitagabend)
-        df.loc[zeit_maske, 'ttime'] = df.loc[zeit_maske, 'ttime'] - pd.Timedelta(days=2)
-        #
-        # Chronologisch sortieren, damit die neuen Freitags-Daten an der richtigen Stelle sitzen
-        df = df.sort_values(by='ttime').reset_index(drop=True)
+        # und jetzt der Index auf datetime
         df.set_index(pd.DatetimeIndex(df.ttime, name='time'), inplace=True)
         df.drop('ttime', inplace=True, axis=1)
-        # Duplicate vom wechsel von Winter- auf Sommerzeit löschen
-        df = df[~df.index.duplicated(keep='first')]
-        df.to_csv(path + 'min5Candle_raw2.csv')
 
-        """
-        #
-        # Beim Wechsel von Sommer- auf Winterzeit gibt es Überschneidungen,
-        # die gelöscht werden müssen
-        df.to_csv(path + 'min5Candle_raw2.csv')
-        df.drop_duplicates(subset=['ttime'], 
-                           keep='first', 
-                           inplace=True, 
-                           ignore_index=True)
-        #
-        # Sortieren und Datetimeindex setzen
-        df = df.sort_values(by='ttime')
-        df.set_index(pd.DatetimeIndex(df.ttime, name='time'), inplace=True)
-        df.drop('ttime', inplace=True, axis=1)
-        df.to_csv(path + 'min5Candle_raw3.csv')
+        # Löschen der Daten für Freitag ab 22:00 Uhr, Samstag komplett und Sonntage bis 21:00 Uhr
+        # df[df.index.weekday == 6] = df[(df.index.weekday == 6) & (df.index.time > datetime.time(21,0))]
+        df = df[~(((df.index.weekday == 4) & (df.index.hour > 21)) \
+                  | (df.index.weekday == 5) \
+                  | ((df.index.weekday == 6) & (df.index.hour < 21)) \
+                  )]
+        # Korrektur der Winterzeiten (Sonntage ab 22 Uhr)
+        df = df[~(df.index.month.isin([1, 2, 3, 11, 12]) & \
+                  (df.index.weekday == 6) & (df.index.hour < 22))]
+        # Korrektur der Sommerzeiten (Freitage bis 21 Uhr)
+        df = df[~(df.index.month.isin([4, 5, 6, 7, 8, 9, 10]) & \
+                  (df.index.weekday == 4) & (df.index.hour > 20))]
+        # ... und jetzt verschieben wir die Daten vom Sonntag auf den Freitag
+        df.index = df.index.where(df.index.weekday != 6, df.index - pd.DateOffset(days=2))
+        # Löschen der Duplicate
+        df = df[~df.index.duplicated(keep='first')]
+        df = df.sort_index()
         #
         # Auffüllen von fehlenden Werte: aufgrund vom Wechsel von Winter-
         # auf Sommerzeit (es fehlt dann 1 Stunde), oder aufgrund von System-
@@ -385,8 +372,6 @@ class forexRLDayTrading:
         # Löschen der Samstage und Sonntage
         df = df[(df.index.weekday != 5)]
         df = df[(df.index.weekday != 6)]
-        df.to_csv(path + 'min5Candle_raw4.csv')
-        """
         #
         # Konvertierung auf andere Zeitskalen, Erzeugen der technischen Indikatoren und Erzeugen der Wavelet-Features
         # für 5 Minuten-Skala

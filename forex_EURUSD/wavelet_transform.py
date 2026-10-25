@@ -24,8 +24,8 @@ def calculate_wavelet_features(
 
     Parameter
     ---------
-    df:
-        pd.DataFrame mit Spalte Close für Zeitreihe der EURUSD-Schlusskurse auf 5-Minuten-Basis.
+    close:
+        Zeitreihe der EURUSD-Schlusskurse auf 5-Minuten-Basis.
     window:
         Anzahl vergangener Renditen im rollierenden Fenster.
     wavelet:
@@ -65,13 +65,13 @@ def calculate_wavelet_features(
 
     # Namen der Features
     columns = [
-        f"w_energy_D{i}"
+        f"wavelet_energy_D{i}"
         for i in range(level, 0, -1)
     ]
 
     columns += [
-        f"w_energy_A{level}",
-        "w_total_energy"
+        f"wavelet_energy_A{level}",
+        "wavelet_total_energy"
     ]
 
     result = pd.DataFrame(
@@ -91,7 +91,6 @@ def calculate_wavelet_features(
         x = return_values[t - window + 1:t + 1]
 
         if not np.isfinite(x).all():
-            print('x-finite-problem:',x)
             continue
 
         # Diskrete Wavelet-Transformation
@@ -112,18 +111,15 @@ def calculate_wavelet_features(
 
         total_energy = energies.sum()
 
-        # Fix: Fängt sowohl negative Werte als auch exakt 0 ab
         if total_energy <= 0:
-            # Wenn keine Energie vorhanden ist, sind alle relativen Anteile 0
-            detail_energies = np.zeros_like(energies[1:])
-            approximation_energy = 0.0
-        else:
-            # Relative Energie der Detailkomponenten
-            # Reihenfolge: D_level, ..., D1
-            detail_energies = energies[1:] / total_energy
+            continue
 
-            # Relative Energie der Approximation
-            approximation_energy = energies[0] / total_energy
+        # Relative Energie der Detailkomponenten
+        # Reihenfolge: D_level, ..., D1
+        detail_energies = energies[1:] / total_energy
+
+        # Relative Energie der Approximation
+        approximation_energy = energies[0] / total_energy
 
         # Gesamtenergie der Renditen im Fenster
         total_energy_raw = np.sum(x ** 2)
@@ -136,6 +132,7 @@ def calculate_wavelet_features(
         result.iloc[t, :] = values
 
     df = pd.concat([df, result], axis=1)
+
     return df
 
 
