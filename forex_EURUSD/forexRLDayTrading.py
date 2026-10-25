@@ -362,7 +362,6 @@ class forexRLDayTrading:
         df.index = df.index.where(df.index.weekday != 6, df.index - pd.DateOffset(days=2))
         # Löschen der Duplicate
         df = df[~df.index.duplicated(keep='first')]
-        df = df.sort_index()
         #
         # Auffüllen von fehlenden Werte: aufgrund vom Wechsel von Winter-
         # auf Sommerzeit (es fehlt dann 1 Stunde), oder aufgrund von System-
@@ -372,6 +371,13 @@ class forexRLDayTrading:
         # Löschen der Samstage und Sonntage
         df = df[(df.index.weekday != 5)]
         df = df[(df.index.weekday != 6)]
+        # Weihnachten, Sylvester und Neujahr müssen weg
+        df = df[(df.index.month != 12) | (df.index.day != 24)]
+        df = df[(df.index.month != 12) | (df.index.day != 25)]
+        df = df[(df.index.month != 12) | (df.index.day != 31)]
+        df = df[(df.index.month != 1) | (df.index.day != 1)]
+        print(len(df))
+        df = df.sort_index()
         #
         # Konvertierung auf andere Zeitskalen, Erzeugen der technischen Indikatoren und Erzeugen der Wavelet-Features
         # für 5 Minuten-Skala
