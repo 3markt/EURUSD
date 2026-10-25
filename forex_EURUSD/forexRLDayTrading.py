@@ -183,7 +183,7 @@ class forexRLDayTrading:
 
 
 
-    def calculate_wavelet_features(
+    def calculate_wavelet_features(self,
             df: pd.DataFrame,
             window: int = 128,
             wavelet: str = "db4",
