@@ -311,9 +311,9 @@ class forexRLDayTrading:
 
         
     def processCandle(self, startDt = '01.01.2007'):
+
         #
         # Erzeugen der Dateiliste
-        #
         cpath = self.rawpath + 'forexCandle/'
         path = self.processedpath + '/forexCandle/'
         cfiles = [f for f in listdir(cpath) if isfile(join(cpath, f)) and \
@@ -321,20 +321,24 @@ class forexRLDayTrading:
         cfiles.sort()
         for fl in cfiles:
             print(fl)
-        
+        #
+        # Einlesen der Rohdaten
         df = pd.DataFrame()
         for c in cfiles:
-            dfi = pd.read_csv(cpath + c, dayfirst=True, parse_dates=[0])
-            dfi.rename({'Gmt time':'ttime'}, inplace=True, axis=1)
+            if (c == 'EURUSD_M5_20230219_20260731.csv'):
+                dfirst = False
+            else:
+                dfirst = True
+            dfi = pd.read_csv(cpath + c, parse_dates=[0], dayfirst=dfirst)
+            dfi.rename({'Gmt time': 'ttime'}, inplace=True, axis=1)
             dfi = dfi[['ttime', 'Open', 'High', 'Low', 'Close', ]]
             df = pd.concat([df, dfi])
-
         #
-        # re-initialisieren
+        # re-initialisieren des Index
         df.reset_index(drop=True, inplace=True)
         #
         # Sicherstellen, dass das Datetime-Format aktiv ist
-        df['ttime'] = pd.to_datetime(df['ttime'])
+        df['ttime'] = pd.to_datetime(df['ttime'], utc=True,  format='mixed', dayfirst=True)
         #
         # und vorsichtshalber nochmals sortieren
         df = df.sort_values(by='ttime').reset_index(drop=True)
@@ -345,27 +349,32 @@ class forexRLDayTrading:
         # und jetzt der Index auf datetime
         df.set_index(pd.DatetimeIndex(df.ttime, name='time'), inplace=True)
         df.drop('ttime', inplace=True, axis=1)
-
+        print('Anzahl Rohdaten', len(df))
+        #
         # Löschen der Daten für Freitag ab 22:00 Uhr, Samstag komplett und Sonntage bis 21:00 Uhr
-        # df[df.index.weekday == 6] = df[(df.index.weekday == 6) & (df.index.time > datetime.time(21,0))]
-        df = df[~(((df.index.weekday == 4) & (df.index.hour > 21)) \
-                  | (df.index.weekday == 5) \
-                  | ((df.index.weekday == 6) & (df.index.hour < 21)) \
-                  )]
-        # Korrektur der Winterzeiten (Sonntage ab 22 Uhr)
-        df = df[~(df.index.month.isin([1, 2, 3, 11, 12]) & \
-                  (df.index.weekday == 6) & (df.index.hour < 22))]
-        # Korrektur der Sommerzeiten (Freitage bis 21 Uhr)
-        df = df[~(df.index.month.isin([4, 5, 6, 7, 8, 9, 10]) & \
-                  (df.index.weekday == 4) & (df.index.hour > 20))]
+        df = df[~((df.index.weekday == 4) & (df.index.hour > 21))]
+        #
+        # ... und Sonntag bis 21:00 Uhr
+        df = df[~((df.index.weekday == 6) & (df.index.hour < 21))]
+        #
+        # Korrektur der Winterzeiten (Sonntage ab 22 Uhr - ein kleiner Fehler bleibt)
+        df = df[~(df.index.month.isin([1, 2, 3, 11, 12]) & (df.index.weekday == 6) & (df.index.hour < 22))]
+        #
+        # Korrektur der Sommerzeiten (Freitage bis 21 Uhr - ein kleiner Fehler bleibt)
+        df = df[~(df.index.month.isin([4, 5, 6, 7, 8, 9, 10]) & (df.index.weekday == 4) & (df.index.hour > 20))]
+        #
         # ... und jetzt verschieben wir die Daten vom Sonntag auf den Freitag
         df.index = df.index.where(df.index.weekday != 6, df.index - pd.DateOffset(days=2))
-        # Löschen der Duplicate
+        #
+        print('Anzahl Daten nach Löschen von Samstag und Transferieren von Sonntag auf Freitag', len(df))
+        #
+        # Löschen aller Duplikate, insbesondere beim Übergang von Sommerzeit auf Winterzeit
         df = df[~df.index.duplicated(keep='first')]
         #
         # Auffüllen von fehlenden Werte: aufgrund vom Wechsel von Winter-
         # auf Sommerzeit (es fehlt dann 1 Stunde), oder aufgrund von System-
         # ausfällen
+        df = df.sort_index()
         df = df.asfreq('5min', method='ffill')
         #
         # Löschen der Samstage und Sonntage
@@ -376,7 +385,7 @@ class forexRLDayTrading:
         df = df[(df.index.month != 12) | (df.index.day != 25)]
         df = df[(df.index.month != 12) | (df.index.day != 31)]
         df = df[(df.index.month != 1) | (df.index.day != 1)]
-        print(len(df))
+        print('Anzahl Tage nach Löschen von Feiertagen', len(df))
         df = df.sort_index()
         #
         # Konvertierung auf andere Zeitskalen, Erzeugen der technischen Indikatoren und Erzeugen der Wavelet-Features
@@ -454,6 +463,7 @@ class forexRLDayTrading:
                          inplace=True)
 #        self.df_all = df_all[['Close'] + self.techCols]
         self.df_all = df_all[['Close'] + self.techCols + self.waveletCols]
+
 
 
     def mergeEcoFeature(self, df_eco, name):
@@ -604,16 +614,6 @@ class forexRLDayTrading:
         self.df_all = self.df_all[['Close'] + self.techCols + self.ecoCols + self.waveletCols]
         self.df_all = self.df_all.loc[self.df_all.index >= startDt]
         self.df_all = self.df_all.loc[self.df_all.index <= endDt]
-        
-        # Weihnachten, Sylvester und Neujahr müssen weg
-        self.df_all = self.df_all[(self.df_all.index.month != 12) \
-                                  | (self.df_all.index.day != 24)]
-        self.df_all = self.df_all[(self.df_all.index.month != 12) \
-                                  | (self.df_all.index.day != 25)]
-        self.df_all = self.df_all[(self.df_all.index.month != 12) \
-                                  | (self.df_all.index.day != 31)]
-        self.df_all = self.df_all[(self.df_all.index.month != 1) \
-                                  | (self.df_all.index.day != 1)]
 
         print('Anzahl Beobachtungen nach Cleanup', len(self.df_all))
         n_nan = self.df_all.isnull().sum().sum()

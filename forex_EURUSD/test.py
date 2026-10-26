@@ -112,7 +112,7 @@ def calculate_wavelet_features(
         total_energy = energies.sum()
 
         if total_energy <= 0:
-            print('in wavelet: total_energy <= 0', total_energy)
+            print('in wavelet: total_energy <= 0', x)
             continue
 
         # Relative Energie der Detailkomponenten
@@ -142,10 +142,14 @@ ppath = '/home/uwe/Hope/data/processed/EURUSD/'
 
 cfiles = [f for f in listdir(cpath) if isfile(join(cpath, f))]
 cfiles.sort()
-
+print(cfiles)
 df = pd.DataFrame()
 for c in cfiles:
-    dfi = pd.read_csv(cpath + c, dayfirst=True, parse_dates=[0])
+    if (c == 'EURUSD_M5_20230219_20260731.csv'):
+        dfirst = False
+    else:
+        dfirst = True
+    dfi = pd.read_csv(cpath + c, parse_dates=[0], dayfirst=dfirst)
     dfi.rename({'Gmt time': 'ttime'}, inplace=True, axis=1)
     dfi = dfi[['ttime', 'Open', 'High', 'Low', 'Close', ]]
     df = pd.concat([df, dfi])
@@ -154,7 +158,7 @@ for c in cfiles:
 df.reset_index(drop=True, inplace=True)
 #
 # Sicherstellen, dass das Datetime-Format aktiv ist
-df['ttime'] = pd.to_datetime(df['ttime'])
+df['ttime'] = pd.to_datetime(df['ttime'], utc=True,  format='mixed', dayfirst=True)
 #
 # und vorsichtshalber nochmals sortieren
 df = df.sort_values(by='ttime').reset_index(drop=True)
@@ -166,49 +170,62 @@ df['ttime'] = df['ttime'] + pd.Timedelta(minutes=5)
 df.set_index(pd.DatetimeIndex(df.ttime, name='time'), inplace=True)
 df.drop('ttime', inplace=True, axis=1)
 
-print(len(df))
+print('Anzahl Rohdaten', len(df))
+#
 # Löschen der Daten für Freitag ab 22:00 Uhr, Samstag komplett und Sonntage bis 21:00 Uhr
-#df[df.index.weekday == 6] = df[(df.index.weekday == 6) & (df.index.time > datetime.time(21,0))]
-df = df[~(((df.index.weekday == 4) & (df.index.hour > 21))  \
-          | (df.index.weekday == 5) \
-          | ((df.index.weekday == 6) & (df.index.hour < 21)) \
-          )]
-# Korrektur der Winterzeiten (Sonntage ab 22 Uhr)
-df = df[~(df.index.month.isin([1, 2, 3, 11, 12]) & \
-          (df.index.weekday == 6) & (df.index.hour < 22))]
-# Korrektur der Sommerzeiten (Freitage bis 21 Uhr)
-df = df[~(df.index.month.isin([4, 5, 6, 7, 8, 9, 10]) & \
-          (df.index.weekday == 4) & (df.index.hour > 20))]
+df = df[~((df.index.weekday == 4) & (df.index.hour > 21))]
+#
+# ... und Sonntag bis 21:00 Uhr
+df = df[~((df.index.weekday == 6) & (df.index.hour < 21))]
+#
+# Korrektur der Winterzeiten (Sonntage ab 22 Uhr - ein kleiner Fehler bleibt)
+df = df[~(df.index.month.isin([1, 2, 3, 11, 12]) & (df.index.weekday == 6) & (df.index.hour < 22))]
+#
+# Korrektur der Sommerzeiten (Freitage bis 21 Uhr - ein kleiner Fehler bleibt)
+df = df[~(df.index.month.isin([4, 5, 6, 7, 8, 9, 10]) & (df.index.weekday == 4) & (df.index.hour > 20))]
+#
 # ... und jetzt verschieben wir die Daten vom Sonntag auf den Freitag
 df.index = df.index.where(df.index.weekday != 6, df.index - pd.DateOffset(days=2))
-print(len(df))
+
+print('Anzahl Daten nach Löschen von Samstag und Transferieren von Sonntag auf Freitag', len(df))
+#
+# Löschen aller Duplikate, insbesondere beim Übergang von Sommerzeit auf Winterzeit
 df = df[~df.index.duplicated(keep='first')]
 #
 # Auffüllen von fehlenden Werte: aufgrund vom Wechsel von Winter-
 # auf Sommerzeit (es fehlt dann 1 Stunde), oder aufgrund von System-
 # ausfällen
-#df = df.asfreq('5min', method='ffill')
+df = df.sort_index()
+df = df.asfreq('5min', method='ffill')
 #
-# Löschen der Samstage und Sonntage
-df = df[(df.index.weekday != 5)]
+# Löschen der Samstage und Sonntage komplett, falls noch etwas übrig ist
+print('vor Löschen Sonntag', len(df))
+df = df[~(df.index.weekday == 5)]
 df = df[(df.index.weekday != 6)]
-# Weihnachten, Sylvester und Neujahr müssen weg
+print('nach Löschen Sonntag', len(df))
+# Weihnachten, Sylvester und Neujahr müssen komplett weg, da die Daten i.d.R. nicht vollständig sind
 df = df[(df.index.month != 12) | (df.index.day != 24)]
 df = df[(df.index.month != 12) | (df.index.day != 25)]
 df = df[(df.index.month != 12) | (df.index.day != 31)]
 df = df[(df.index.month != 1) | (df.index.day != 1)]
-print(len(df))
-df = df.sort_index()
-df = df.loc['2005-01-02 00:00:00':'2024-12-31 23:55:00']
+print('Anzahl Tage nach Löschen von Feiertagen', len(df))
 
-#df = calculate_wavelet_features(df, window=128, wavelet="db4", level=4)
+df = calculate_wavelet_features(df, window=128, wavelet="db4", level=4)
+#
+# Prüfen der Anzahl Tage != 288
+df_tag = df.resample("D").size().to_frame(name="anzahl")
+df_tag["wochentag"] = df_tag.index.day_name(locale="de_DE.utf8")
+print('Anzahl Tage insgesamt:', len(df_tag))
+df_tag = df_tag[df_tag['anzahl'] < 288]
+print('Anzahl Tage mit weniger als 288 5-min Intervalle', len(df_tag))
 
-dff = df.groupby(df.index.date).count()
-print('Anzahl Tage insgesamt:', len(dff))
-dff = dff[dff['Close'] < 288]
-print(len(dff))
+df_tag.to_csv(ppath + 'df_tage.csv')
 
-dff.to_csv(ppath + 'df_tage.csv')
-
-df_check =  df.loc['2025-01-13':'2025-01-17']
-df_check.to_csv(ppath + 'df_check.csv')
+# Prüfen wie viele gleiche Werte pro Tag
+df_gleich = pd.DataFrame(index=df.index, columns=["wert", 'IstGleich'])
+df_gleich['wert'] = df['Close'] - df['Close'].shift(1)
+df_gleich['IstGleich'] = np.where(df_gleich['wert'] == 0, 1, 0)
+df_gleich = df_gleich[['IstGleich']].resample('D').sum()
+df_gleich["wochentag"] = df_gleich.index.day_name(locale="de_DE.utf8")
+print(df_gleich.head())
+df_gleich.to_csv(ppath + 'df_gleich.csv')
