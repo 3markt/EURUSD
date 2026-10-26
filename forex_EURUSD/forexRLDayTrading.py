@@ -543,7 +543,7 @@ class forexRLDayTrading:
         df['Forecast'] = df['Forecast'].apply(self.cleanEcoPct)
         #
         # Zusammenfassen von Date und Time
-        df['time'] = pd.to_datetime(df['Date'] + ' ' + df['Time'], dayfirst=True)
+        df['time'] = pd.to_datetime(df['Date'] + ' ' + df['Time'], utc=True, dayfirst=True)
         #
         # Umwandeln auf Europe/Berlin local time
         #df["time"] = df["time"].dt.tz_localize("Europe/Berlin")
