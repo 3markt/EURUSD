@@ -310,14 +310,14 @@ class forexRLDayTrading:
 
 
         
-    def processCandle(self, startDt = '01.01.2007'):
+    def processCandle(self):
 
         #
         # Erzeugen der Dateiliste
         cpath = self.rawpath + 'forexCandle/'
         path = self.processedpath + '/forexCandle/'
         cfiles = [f for f in listdir(cpath) if isfile(join(cpath, f)) and \
-                    f[:6] == self.currency and f[27:38] >= startDt]
+                    f[:6] == self.currency]
         cfiles.sort()
         for fl in cfiles:
             print(fl)
@@ -1114,14 +1114,13 @@ class forexRLDayTrading:
                 result = []
 
                                                                
-                                                               
-fileStartDt = '01.01.2003'
+
 periodStartDt = '2005-01-02 00:00:00'
 periodEndDt = '2024-12-31 23:55:00'
 
 eurusdData = forexRLDayTrading('EURUSD')
 
-eurusdData.processCandle(startDt = fileStartDt)
+eurusdData.processCandle()
 
 eurusdData.addEcoData()
 
