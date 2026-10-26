@@ -543,14 +543,13 @@ class forexRLDayTrading:
         df['Forecast'] = df['Forecast'].apply(self.cleanEcoPct)
         #
         # Zusammenfassen von Date und Time
-        df['time'] = pd.to_datetime(df['Date'] + ' ' + df['Time'], utc=True, dayfirst=True)
-        #
-        # Umwandeln auf Europe/Berlin local time
-        #df["time"] = df["time"].dt.tz_localize("Europe/Berlin")
-        df['time'] = df['time'] + pd.to_timedelta(-1, unit='h')
+        df['time'] = pd.to_datetime(df['Date'] + ' ' + df['Time'], dayfirst=True)
         #
         # Zeit-Index Festlegen
         df.set_index(pd.DatetimeIndex(df.time), inplace=True)
+        #
+        # Umwandeln von Europe/Berlin auf utc - 1 Stunde abziehen
+        df.index = df.index.tz_localize('Europe/Berlin', ambiguous='infer').tz_convert('UTC')
         #
         # Löschen der ueberfluessigen Spalten
         df.drop(['Date', 'Time', 'Previous', 'time'], axis=1, inplace=True)
