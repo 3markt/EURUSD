@@ -551,6 +551,9 @@ class forexRLDayTrading:
         # Umwandeln von Europe/Berlin auf utc - 1 Stunde abziehen
         df.index = df.index.tz_localize('Europe/Berlin', ambiguous='infer').tz_convert('UTC')
         #
+        # Löschen möglicher Duplikate, insbesondere beim Übergang von Sommerzeit auf Winterzeit
+        df = df[~df.index.duplicated(keep='first')]
+        #
         # Löschen der ueberfluessigen Spalten
         df.drop(['Date', 'Time', 'Previous', 'time'], axis=1, inplace=True)
         #
