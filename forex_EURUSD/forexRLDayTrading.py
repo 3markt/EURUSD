@@ -843,7 +843,7 @@ class forexRLDayTrading:
         ntest = 200
         nepoch = 1
         i = 1
-        for i in range(ntrain+3000, niter, 200):
+        for i in range(ntrain+3000, niter, 500):
             x_train = np.array([])
             y_train = np.array([])
             x_test = np.array([])
