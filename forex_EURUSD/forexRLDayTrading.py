@@ -37,11 +37,11 @@ class myLSTM(nn.Module):
         
         super().__init__()
         self.lstm1 = nn.LSTM(input_size=inputsize, 
-                            hidden_size=48, 
+                            hidden_size=128,
                             num_layers=1, 
                             batch_first=True)
         
-        self.linear = nn.Linear(48, 3)
+        self.linear = nn.Linear(128, 3)
         
         
         
@@ -107,6 +107,7 @@ class forexRLDayTrading:
         self.processedpath = self.basepath + 'processed/' + self.currency + '/'
         self.finalpath = self.basepath + 'final/' + self.currency + '/'
         self.schockStandardize = []
+        print(len(self.featureList))
         self.bt = 288
         self.ts = 36
         self.bs = self.bt - self.ts
@@ -741,7 +742,7 @@ class forexRLDayTrading:
 
 
 
-    def processSchockFeature(self, path, fn, schockMeanStd):
+    def processSchockFeature(self, path, ecoSchockName, fn):
         #
         # Verarbeitung eines Schock-Features
         #
@@ -825,7 +826,8 @@ class forexRLDayTrading:
         #
         # und sicherheitshalber nochmals sortieren
         self.df_all = self.df_all.sort_index()
-#        self.df_all = self.df_all[['Close'] + self.techCols + self.ecoCols]
+
+        #self.df_all = self.df_all[['Close'] + self.techCols + self.ecoCols]
         #
         # Selektion der relevanten Features und Beobachtungen
         self.df_all = self.df_all[['Close'] + self.techCols + self.ecoCols + self.waveletCols]
@@ -833,8 +835,10 @@ class forexRLDayTrading:
         self.df_all = self.df_all.loc[self.df_all.index <= endDt]
 
         print('Anzahl Beobachtungen nach Cleanup', len(self.df_all))
-        n_nan = self.df_all.isnull().sum().sum()
-        print('Anzahl fehlender Werte =', n_nan)
+        for c in self.df_all.columns:
+            n_nan = self.df_all[c].isnull().sum()
+            print('Fehlende Werte in Spalte ' + c, n_nan)
+
         self.df_all[self.df_all.isnull()].to_csv(cpath + 'df_all_isnull.csv')
         self.df_all.to_csv(cpath + 'df_all.csv')
 

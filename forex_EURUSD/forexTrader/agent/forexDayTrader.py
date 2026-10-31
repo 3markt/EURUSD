@@ -27,7 +27,7 @@ import torch.utils.data as data
 
 class myLSTM(nn.Module):
     
-    def __init__(self, inputsize=51, hiddensize=48, outputsize=3):
+    def __init__(self, inputsize=86, hiddensize=128, outputsize=3):
         
         #super().__init__()
         super(myLSTM, self).__init__()
@@ -128,7 +128,7 @@ class ForexDayTrader:
 
     def create_model(self, name):
 
-        model = myLSTM(self.ff, 48, 3)
+        model = myLSTM(self.ff, 128, 3)
         lr = self.learning_rate
         optimizer = optim.Adam(model.parameters(), lr=lr)
         loss_fn = nn.MSELoss()
