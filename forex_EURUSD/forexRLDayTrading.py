@@ -85,7 +85,7 @@ class forexRLDayTrading:
                'delta1_us_ism_pmi_service', 'us_unemployment', 'delta1_us_unemployment', 'us_jobless_initial',
                'delta1_us_jobless_initial', 'us_employment_change', 'delta1_us_employment_change', 'us_offene_stellen',
                'delta1_us_offene_stellen', 'eu_unemployment', 'delta1_eu_unemployment', 'us_einzelhandelsumsatz',
-               'us_rohoelbestand', 'de_zew_ausblick', 'delta1_de_zew_ausblick', 'de_ifo', 'delta1_de_ifo',
+               'de_zew_ausblick', 'delta1_de_zew_ausblick', 'de_ifo', 'delta1_de_ifo',
                'schock_us_fed_zins', 'schock_eu_ecb_zins', 'schock_preis_us', 'schock_preis_eu',
                'schock_us_ism_pmi_manufact', 'schock_us_ism_pmi_service', 'schock_us_unemployment',
                'schock_eu_unemployment', 'schock_us_jobless_initial', 'schock_us_employment_change',
