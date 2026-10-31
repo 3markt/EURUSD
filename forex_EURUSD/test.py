@@ -10,7 +10,7 @@ import pandas as pd
 from os import listdir, makedirs
 from os.path import isfile, join, isdir
 import datetime
-import ta
+#import ta
 import pywt
 
 
@@ -502,6 +502,10 @@ for ef in ecoFeatures:
 start_date = datetime.date(2005, 1, 1)
 end_date = datetime.date(2026, 6, 30)
 
+ecoCols = df.columns.tolist()
+pd.DataFrame(ecoCols).to_csv(ppath + 'ecoCols.csv', index=False)
 pd.DataFrame(schockMeanStd, columns=['schock', 'mean', 'std']).to_csv(path + 'mean-std-schock.csv')
 df = df[(df.index.date >= start_date) & (df.index.date <= end_date)]
 df.to_csv(ppath + 'df_all.csv')
+
+

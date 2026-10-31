@@ -64,7 +64,8 @@ class forexRLDayTrading:
                 'WL_1D', 'macd_1D', 'macd_d_1D', 'bb_h_1D', 'bb_l_1D', 'rsi_1D']
 
     waveletCols = ['wavelet_energy_D4', 'wavelet_energy_D3', 'wavelet_energy_D2', 'wavelet_energy_D1']
-    
+
+    """
     ecoCols = ['CPI_US' , 'CPI_EU', 
                'Zins_US', 'Zins_EU', 
                'Schock_Preis_US', 'Schock_Preis_EU', 
@@ -74,6 +75,21 @@ class forexRLDayTrading:
                'JoblessContinued_US', 'UnemploymentRate_EU', 
                'Schock_Arbeitsmarkt_US', 'Schock_Arbeitsmarkt_EU',
                'Schock_Konjunktur_US', 'Schock_Konjunktur_EU']
+    """
+
+    ecoCols = ['brent_oil', 'delta1_brent_oil', 'delta5_brent_oil', 'spread_3m_expected_zins',
+               'delta1_spread_3m_expected_zins', 'delta5_spread_3m_expected_zins', 'us_fed_zins', 'spread_us_eu_zins',
+               'delta1_spread_us_eu_zins', 'spread_us_de_2y_zins', 'delta1_spread_us_de_2y_zins',
+               'spread_us_eu_10y_zins', 'delta1_spread_us_eu_10y_zins', 'spread_ppi', 'delta1_spread_ppi', 'spread_cpi',
+               'delta1_spread_cpi', 'us_ism_pmi_manufact', 'delta1_us_ism_pmi_manufact', 'us_ism_pmi_service',
+               'delta1_us_ism_pmi_service', 'us_unemployment', 'delta1_us_unemployment', 'us_jobless_initial',
+               'delta1_us_jobless_initial', 'us_employment_change', 'delta1_us_employment_change', 'us_offene_stellen',
+               'delta1_us_offene_stellen', 'eu_unemployment', 'delta1_eu_unemployment', 'us_einzelhandelsumsatz',
+               'us_rohoelbestand', 'de_zew_ausblick', 'delta1_de_zew_ausblick', 'de_ifo', 'delta1_de_ifo',
+               'schock_us_fed_zins', 'schock_eu_ecb_zins', 'schock_preis_us', 'schock_preis_eu',
+               'schock_us_ism_pmi_manufact', 'schock_us_ism_pmi_service', 'schock_us_unemployment',
+               'schock_eu_unemployment', 'schock_us_jobless_initial', 'schock_us_employment_change',
+               'schock_us_offene_stellen', 'schock_us_einzelhandelsumsatz']
         
 #    scaledCols = techCols + ecoCols
     scaledCols = techCols + ecoCols + waveletCols
@@ -615,7 +631,7 @@ class forexRLDayTrading:
         # Bereinigen der Daten und Auffüllen fehlender Werte
         df['Date'] = df['Date'].apply(self.cleanEcoDate)
         if ('Forecast' in df.columns):
-            df = df.apply(missingEcoData, axis=1)
+            df = df.apply(self.missingEcoData, axis=1)
             df['Forecast'] = df['Forecast'].apply(self.cleanEcoPct)
         if ('Previous' in df.columns):
             df['Previous'] = df['Previous'].apply(self.cleanEcoPct)
@@ -725,7 +741,7 @@ class forexRLDayTrading:
 
 
 
-    def processSchockFeature(self, path, ecoSchockName, fn, schockMeanStd):
+    def processSchockFeature(self, path, fn, schockMeanStd):
         #
         # Verarbeitung eines Schock-Features
         #
@@ -744,7 +760,7 @@ class forexRLDayTrading:
         if (s_std == 0):
             s_std = 1
         df['schock'] = (df['schock'] - s_mean) / s_std
-        schockMeanStd.append([fn, s_mean, s_std])
+        self.schockStandardize.append([fn, s_mean, s_std])
         #
         # Verknüpfen der eco features mit df_all
         df_all = pd.merge_ordered(self.df_all.reset_index(),
@@ -783,17 +799,14 @@ class forexRLDayTrading:
                                             'Delta': str})
 
         ecoFeatures = df_eco_feature.values.tolist()
-        print(ecoFeatures)
-        schockMeanStd = []
         for ef in ecoFeatures:
             print(ef)
             if (ef[0].split('_')[0] == 'spread'):
-                self.df_all = processSpreadFeature(epath, ef[0].strip(), ef[1].strip(), ef[2].strip())
+                self.df_all = self.processSpreadFeature(epath, ef[0].strip(), ef[1].strip(), ef[2].strip())
             elif (ef[0].split('_')[0] == 'schock'):
-                self.df_all = processSchockFeature(epath, ef[0].strip(), ef[1].strip(), schockMeanStd)
+                self.df_all = self.processSchockFeature(epath, ef[0].strip(), ef[1].strip())
             else:
-                self.df_all = processNormalEcoFeature(epath, ef[0].strip(), ef[1].strip(), ef[2].strip())
-
+                self.df_all = self.processNormalEcoFeature(epath, ef[0].strip(), ef[1].strip(), ef[2].strip())
 
 
 
@@ -806,8 +819,15 @@ class forexRLDayTrading:
 
         print('Anzahl Beobachtungen vor Cleanup', len(self.df_all))
         sys.stdout.flush()
-  
+        #
+        # fehlende Werte müssen über ffill befüllt werden
+        self.df_all = self.df_all.ffill()
+        #
+        # und sicherheitshalber nochmals sortieren
+        self.df_all = self.df_all.sort_index()
 #        self.df_all = self.df_all[['Close'] + self.techCols + self.ecoCols]
+        #
+        # Selektion der relevanten Features und Beobachtungen
         self.df_all = self.df_all[['Close'] + self.techCols + self.ecoCols + self.waveletCols]
         self.df_all = self.df_all.loc[self.df_all.index >= startDt]
         self.df_all = self.df_all.loc[self.df_all.index <= endDt]
