@@ -599,12 +599,207 @@ class forexRLDayTrading:
                       self.df_all[feature[0]].max())
 
         #self.df_all.to_csv(epath + 'test/test.csv')
-        
-        
+
+
+
+    def readAndCleanEcoFeatureFile(self, path, fn):
+        #
+        # Liest und bereinigt die Eco Feature Date
+        #
+        df = pd.read_csv(path + fn,
+                         dtype={'Actual': str,
+                                'Forecast': str,
+                                'Previous': str})
+        df.rename({'Release Date': 'Date'}, inplace=True, axis=1)
+        #
+        # Bereinigen der Daten und Auffüllen fehlender Werte
+        df['Date'] = df['Date'].apply(self.cleanEcoDate)
+        if ('Forecast' in df.columns):
+            df = df.apply(missingEcoData, axis=1)
+            df['Forecast'] = df['Forecast'].apply(self.cleanEcoPct)
+        if ('Previous' in df.columns):
+            df['Previous'] = df['Previous'].apply(self.cleanEcoPct)
+        df['Actual'] = df['Actual'].apply(self.cleanEcoPct)
+        #
+        # Zusammenfassen von Date und Time
+        df['ttime'] = pd.to_datetime(df['Date'] + ' ' + df['Time'].str.strip(), dayfirst=True)
+        #
+        # Zeit-Index Festlegen und sortieren
+        df.set_index(pd.DatetimeIndex(df.ttime, name='time'), inplace=True)
+        df.drop(['ttime'], axis=1, inplace=True)
+        df = df.sort_index()
+        #
+        # Umwandeln von Europe/Berlin auf utc - 1 Stunde abziehen
+        df.index = df.index.tz_localize('Europe/Berlin', ambiguous='infer').tz_convert('UTC')
+
+        return df
+
+
+
+    def processNormalEcoFeature(self, path, ecoFeatureName, fn, delta):
+        #
+        # Verarbeitung eines normalen Eco-Features und Anhängen an den DataFrame
+        #
+        df = self.readAndCleanEcoFeatureFile(path, fn)
+        #
+        # Benamung des Eco Features
+        df.rename({'Actual': ecoFeatureName}, inplace=True, axis=1)
+        #
+        # Löschen der ueberfluessigen Spalten
+        for s in ['Date', 'Time', 'time', 'Forecast', 'Previous']:
+            if (s in df.columns):
+                df.drop(s, axis=1, inplace=True)
+        #
+        # Verarbeitung der Deltas
+        dd = [int(i) for i in delta.split(',')]
+        if (dd[0] > 0):
+            for d in dd:
+                delta_name = 'delta' + str(d) + '_' + ecoFeatureName
+                df[delta_name] = ((df[ecoFeatureName] \
+                                   - df[ecoFeatureName].shift(d)).div(df[ecoFeatureName].replace(0, np.nan))).round(3)
+                df[delta_name] = df[delta_name].fillna(0)
+
+                df.dropna(inplace=True)
+        #
+        # Verknüpfen der eco features mit df_all
+        df_all = pd.merge_ordered(self.df_all.reset_index(),
+                                  df.reset_index(),
+                                  on='time',
+                                  how='left',
+                                  fill_method='ffill').set_index('time')
+
+        return df_all
+
+
+
+    def processSpreadFeature(self, path, ecoFeatureName, fn, delta):
+        #
+        # Verarbeitung eines Spread Features - spread zwischen zwei unterschiedlichen Eco Feature
+        #
+        fn1 = fn.split(',')[0].strip()
+        fn2 = fn.split(',')[1].strip()
+        #
+        # Einlesen der beiden Dateien
+        df1 = self.readAndCleanEcoFeatureFile(path, fn1, )
+        for s in ['Date', 'Time', 'time', 'Forecast', 'Previous']:
+            if (s in df1.columns):
+                df1.drop(s, axis=1, inplace=True)
+
+        df2 = self.readAndCleanEcoFeatureFile(path, fn2)
+        for s in ['Date', 'Time', 'time', 'Forecast', 'Previous']:
+            if (s in df2.columns):
+                df2.drop(s, axis=1, inplace=True)
+
+        #
+        # da nicht alle Daten den gleichen Zeitstempel haben, müssen wir die beiden dataframes mit merge order verbinden
+        df = pd.merge_ordered(df1, df2, on='time', how='outer', fill_method='ffill', suffixes=('_1', '_2'))
+        #
+        # Index auf datetime
+        df.set_index(pd.DatetimeIndex(df.time), inplace=True)
+        #
+        # berechnen des spread
+        df[ecoFeatureName] = (df['Actual_1'] - df['Actual_2']).round(3)
+        #
+        # Bereinigen des Ergebnisses
+        df.drop(['time', 'Actual_1', 'Actual_2'], axis=1, inplace=True)
+        df.dropna(inplace=True)
+        #
+        # Verarbeitung der Deltas
+        dd = [int(i) for i in delta.split(',')]
+        if (dd[0] > 0):
+            for d in dd:
+                delta_name = 'delta' + str(d) + '_' + ecoFeatureName
+                df[delta_name] = ((df[ecoFeatureName] \
+                                   - df[ecoFeatureName].shift(d)).div(df[ecoFeatureName].replace(0, np.nan))).round(3)
+                df[delta_name] = df[delta_name].fillna(0)
+                df.dropna(inplace=True)
+        #
+        # Verknüpfen der eco features mit df_all
+        df_all = pd.merge_ordered(self.df_all.reset_index(),
+                                  df.reset_index(),
+                                  on='time',
+                                  how='left',
+                                  fill_method='ffill').set_index('time')
+
+        return df_all
+
+
+
+    def processSchockFeature(self, path, ecoSchockName, fn, schockMeanStd):
+        #
+        # Verarbeitung eines Schock-Features
+        #
+        fn = fn.strip()
+        df = self.readAndCleanEcoFeatureFile(path, fn)
+        #
+        # Berechne den Schock und löschen aller unnötigen Spalten
+        df['schock'] = ((df['Actual'] - df['Forecast'])).round(3)
+        for s in ['Date', 'Time', 'Forecast', 'Previous', 'Actual']:
+            if (s in df.columns):
+                df.drop(s, axis=1, inplace=True)
+        #
+        # calculate Mean and STD for standardization
+        s_mean = df['schock'].mean()
+        s_std = df['schock'].std()
+        if (s_std == 0):
+            s_std = 1
+        df['schock'] = (df['schock'] - s_mean) / s_std
+        schockMeanStd.append([fn, s_mean, s_std])
+        #
+        # Verknüpfen der eco features mit df_all
+        df_all = pd.merge_ordered(self.df_all.reset_index(),
+                                  df.reset_index(),
+                                  on='time',
+                                  how='left').set_index('time')
+
+        #
+        # Addieren des Schocks - erst prüfen, ob es den ecoSchock bereits gibt
+        if (ecoSchockName not in df_all.columns):
+            df_all[ecoSchockName] = 0
+        #
+        # nach dem merge_ordered haben wir etliche nan-werte, die in den schocks mit 0 befüllt werden müssen
+        for c in df_all.columns:
+            if (c.split('_')[0] == 'schock'):
+                df_all[c] = df_all[c].fillna(0)
+            else:
+                # für alle restlichen eco-features werden die Lücken mit ffill befüllt
+                df_all[c] = df_all[c].ffill()
+
+        df_all[ecoSchockName] = (df_all[ecoSchockName] + df_all['schock']).round(3)
+        df_all.drop(['schock'], axis=1, inplace=True)
+
+        return df_all
+
+
+
+    def addEcoFeatures(self):
+        #
+        # Methode fügt den Daten die ökonomischen Features hinzu
+        #
+        epath = self.processedpath + 'kalender/neu/'
+        df_eco_feature = pd.read_csv(epath + 'kalender-features.csv',
+                                     dtype={'Feature': str,
+                                            'Datei': str,
+                                            'Delta': str})
+
+        ecoFeatures = df_eco_feature.values.tolist()
+        print(ecoFeatures)
+        schockMeanStd = []
+        for ef in ecoFeatures:
+            print(ef)
+            if (ef[0].split('_')[0] == 'spread'):
+                self.df_all = processSpreadFeature(epath, ef[0].strip(), ef[1].strip(), ef[2].strip())
+            elif (ef[0].split('_')[0] == 'schock'):
+                self.df_all = processSchockFeature(epath, ef[0].strip(), ef[1].strip(), schockMeanStd)
+            else:
+                self.df_all = processNormalEcoFeature(epath, ef[0].strip(), ef[1].strip(), ef[2].strip())
+
+
+
 
     def formatFinalVersion(self,
-                           startDt = '2008-01-01 00:00:00',
-                           endDt = '2023-02-16 23:55:00'):
+                           startDt = '2005-02-01 00:00:00',
+                           endDt = '2026-06-30 23:55:00'):
         #
         # einige Cleanups müssen noch gemacht werden
         cpath = self.processedpath + 'forexCandle/'
@@ -1117,14 +1312,15 @@ class forexRLDayTrading:
 
                                                                
 
-periodStartDt = '2005-01-02 00:00:00'
-periodEndDt = '2024-12-31 23:55:00'
+periodStartDt = '2005-02-01 00:00:00'
+periodEndDt = '2026-06-30 23:55:00'
 
 eurusdData = forexRLDayTrading('EURUSD')
 
 eurusdData.processCandle()
 
-eurusdData.addEcoData()
+#eurusdData.addEcoData()
+eurusdData.addEcoFeatures()
 
 eurusdData.formatFinalVersion(startDt = periodStartDt,
                               endDt = periodEndDt)
