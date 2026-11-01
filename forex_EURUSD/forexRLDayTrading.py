@@ -1192,7 +1192,7 @@ class forexRLDayTrading:
                                                                      'Batch_id',
                                                                      'Profit',
                                                                      'Anzahl Action <> 0',
-                                                                     'Anzahl Trades')
+                                                                     'Anzahl Trades'])
                     df_profit.to_csv(self.finalpath + 'result/profit-results.csv', index=False)
 
             curr_state, info = env.reset(options={"start_dt": start_dt, "end_dt": end_dt})
