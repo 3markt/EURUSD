@@ -369,7 +369,7 @@ class ForexEnv(gym.Env):
         #
         # Methode prüft, ob ein Tag in RL-Data enthalten ist
         #
-        return day in self.valid_days
+        return day in self.validDays
 
 
 

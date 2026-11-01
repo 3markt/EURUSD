@@ -1156,8 +1156,8 @@ class forexRLDayTrading:
                 # Beginn des rollierenden Training - wir initialisieren ein rollierendes 3-Jahres-Fenster
                 start_dt = '2013-01-02'
                 end_dt = '2015-12-31'
-            elif (i >= 500000):
-                if (i % 10000 == 0):
+            elif (i > 500):
+                if (i % 10 == 0):
                     #
                     # alle 10000 iterationen wird das Zeitfenster um 1 Tag erhöht und der Folgetag bewertet
                     #
