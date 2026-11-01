@@ -37,11 +37,11 @@ class myLSTM(nn.Module):
         
         super().__init__()
         self.lstm1 = nn.LSTM(input_size=inputsize, 
-                            hidden_size=128,
+                            hidden_size=64,
                             num_layers=1, 
                             batch_first=True)
         
-        self.linear = nn.Linear(128, 3)
+        self.linear = nn.Linear(64, 3)
         
         
         
@@ -1349,7 +1349,7 @@ eurusdData.addEcoFeatures()
 eurusdData.formatFinalVersion(startDt = periodStartDt,
                               endDt = periodEndDt)
 
-eurusdData.createABT()
+#eurusdData.createABT()
 
 eurusdData.fitInitialModel()
 

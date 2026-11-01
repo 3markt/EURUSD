@@ -21,8 +21,7 @@ from operator import itemgetter
 #matplotlib.use('QtAgg')  # Nutzt das frisch installierte PyQt6-Fenstersystem
 import matplotlib.pyplot as plt
 plt.figure(figsize=(12, 8)) # Schön groß machen!
-
-path = '/home/uwe/Hope/data/final/EURUSD/result/'
+path = '/home/uwe/Hope/data/final/EURUSD/result_old_eco/'
 
 files = [f for f in listdir(path) if isfile(join(path, f)) and f[:11] == 'rl-results-']
 #files = [f for f in files if int(f.split("-")[2].split(".")[0]) < 1000000]
