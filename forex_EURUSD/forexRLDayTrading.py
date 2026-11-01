@@ -1151,7 +1151,7 @@ class forexRLDayTrading:
             action_hold = 0
             action_buy = 0
             action_sell = 0
-            if (i == 500000):
+            if (i == 500):
                 #
                 # Beginn des rollierenden Training - wir initialisieren ein rollierendes 3-Jahres-Fenster
                 start_dt = '2013-01-02'
