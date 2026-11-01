@@ -1090,6 +1090,7 @@ class forexRLDayTrading:
                 elif (position == 0):
                     last_i = i
             position = a
+            i += 1
 
         return batch_id, profit, sum(abs(x) for x in action)
 
