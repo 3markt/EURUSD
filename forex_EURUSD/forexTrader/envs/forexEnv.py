@@ -60,7 +60,6 @@ class ForexEnv(gym.Env):
                        and f[:3] == 'day']
         self.dfiles.sort()
         self.validDays = [f[4:14] for f in self.dfiles]
-        """
         self.n_days = len(self.dfiles)
         self.days = np.random.choice(range(self.n_days), size=self.n_batch, replace=False)
         self.all_data = np.array((), dtype=object)
@@ -73,8 +72,7 @@ class ForexEnv(gym.Env):
         #
         # wähle aus den geladenen Batches einen zufällig aus
         self.batch_id = random.randint(0, self.n_batch - 1)
-        """
-
+        #
         # current_profit variables
         self.mean_cp = 0.0
         self.std_cp = 1.0
