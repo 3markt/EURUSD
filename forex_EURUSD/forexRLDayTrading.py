@@ -1178,7 +1178,7 @@ class forexRLDayTrading:
                     nd_batch_id, nd_profit = self.evalOneDay(env, trader, newDay)
                     print('-----> neues EndDate (batch_id = {}) Profit = {}'.format(nd_batch_id, nd_profit))
 
-            curr_state, info = env.reset(start_dt, end_dt)
+            curr_state, info = env.reset(options={"start_dt": start_dt, "end_dt": end_dt})
             curr_state = curr_state.reshape(1, self.ts, self.ff)
             for j in range(self.bs):
                 #

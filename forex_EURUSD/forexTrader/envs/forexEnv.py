@@ -96,10 +96,20 @@ class ForexEnv(gym.Env):
 
 
 
-    def reset(self, start_dt, end_dt):
+    def reset(self, seed=None, options=None):
         #
         # Initialisierung der R-L-Umgebung für einen neuen Tages-Durchlauf
         #
+        super().reset(seed=seed)
+        # Standard-Fallbacks definieren, falls keine Datumsangaben übergeben werden
+        start_dt = None
+        end_dt = None
+        #
+        # Werte aus dem options-Dictionary auslesen, falls vorhanden
+        if options is not None:
+            start_dt = options.get("start_dt")
+            end_dt = options.get("end_dt")
+
         if (self.iter%self.batch_duration == 0):
             #
             # lade zufällig ausgewählte neue Batches aus dem Zeitfenster [start_dt - end_dt]
