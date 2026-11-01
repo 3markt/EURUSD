@@ -14,4 +14,4 @@ path = '/home/uwe/Hope/data/final/EURUSD/RL-data/'
 file = 'day-2017-12-22.npy'
 
 x = np.load(path + file, allow_pickle=True)
-print(x[2])
+print(x[3].astype(np.float32))

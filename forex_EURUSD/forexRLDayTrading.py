@@ -1060,13 +1060,14 @@ class forexRLDayTrading:
     
 
 
-    def evalOneDay(self, env, trader, day):
+    def evalOneDay(self, trader, day):
         #
         # Methode berechnet den Profit für einen Tage
         #
         batch_id = day[0]
         close = day[2]
-        action = trader.predictOneDay(day)
+        x = day[3].astype(np.float32)
+        action = trader.predictOneDay(x)
         profit = 0.
         position = 0
         last_i = None
@@ -1175,7 +1176,7 @@ class forexRLDayTrading:
                     # das neue End-Datum mit dem aktuellen Modell bewerten
                     #
                     newDay = env.getRL_Data(end_dt)
-                    nd_batch_id, nd_profit = self.evalOneDay(env, trader, newDay)
+                    nd_batch_id, nd_profit = self.evalOneDay(trader, newDay)
                     print('-----> neues EndDate (batch_id = {}) Profit = {}'.format(nd_batch_id, nd_profit))
 
             curr_state, info = env.reset(options={"start_dt": start_dt, "end_dt": end_dt})
