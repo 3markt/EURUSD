@@ -34,7 +34,7 @@ class ForexEnv(gym.Env):
         self.current_path = data_path + 'current/'
         self.ts = window_size
         self.bs = batch_size
-        self.n_batch = 500
+        self.n_batch = 250
         self.pip = 10000
         self.position = Positions.Nothing
         self.start_tick = 0
@@ -58,6 +58,9 @@ class ForexEnv(gym.Env):
         # Auswahl der training files
         self.dfiles = [f for f in listdir(self.data_path) if isfile(join(self.data_path, f)) \
                        and f[:3] == 'day']
+        self.dfiles.sort()
+        self.validDays = [f[4:14] for f in self.dfiles]
+        """
         self.n_days = len(self.dfiles)
         self.days = np.random.choice(range(self.n_days), size=self.n_batch, replace=False)
         self.all_data = np.array((), dtype=object)
@@ -70,6 +73,7 @@ class ForexEnv(gym.Env):
         #
         # wähle aus den geladenen Batches einen zufällig aus
         self.batch_id = random.randint(0, self.n_batch - 1)
+        """
 
         # current_profit variables
         self.mean_cp = 0.0
@@ -94,24 +98,27 @@ class ForexEnv(gym.Env):
 
 
 
-    def reset(self):
-
-        self.iter += 1
-
+    def reset(self, start_dt, end_dt):
+        #
+        # Initialisierung der R-L-Umgebung für einen neuen Tages-Durchlauf
+        #
         if (self.iter%self.batch_duration == 0):
             #
-            # lade zufällig ausgewählte neue Batches
-            del self.all_data
-            gc.collect()
-            self.days = np.random.choice(range(self.n_days),
-                                         size=self.n_batch,
-                                         replace=False)
-                
+            # lade zufällig ausgewählte neue Batches aus dem Zeitfenster [start_dt - end_dt]
+            #
+            dfiles = [f for f in self.dfiles if f[4:14] >= start_dt and f[4:14] <= end_dt]
+            #
+            # prüfen ob genügend daten vorhanden
+            n_dfiles = len(dfiles)
+            if (n_dfiles < self.n_batch):
+                sys.exit('Anzahl ausgewählter RL-Daten {} kleiner als Batch-Size {}'.format(n_dfiles, self.n_batch))
+
+            sfiles = np.random.choice(dfiles, size=self.n_batch, replace=False)
+
             self.all_data = np.array((), dtype=object)
-            for day in self.days:
+            for s in sfiles:
                 self.all_data = np.append(self.all_data,
-                                          np.load(self.data_path + self.dfiles[day],
-                                                  allow_pickle=True))
+                                          np.load(self.data_path + s, allow_pickle=True))
             self.all_data = self.all_data.reshape(self.n_batch, 5)
             print('ForexEnv: neue Daten geladen bei Iteration', self.iter)
         #
@@ -148,6 +155,8 @@ class ForexEnv(gym.Env):
             position = self.position,
             action = Actions.Hold
         )
+
+        self.iter += 1
 
         return (self.state, info)
 
@@ -345,5 +354,22 @@ class ForexEnv(gym.Env):
             r = 0.
             hold = 1
         return r, r_long, r_short, long, short, hold
-    
 
+
+
+    def isValidDay(self, day):
+        #
+        # Methode prüft, ob ein Tag in RL-Data enthalten ist
+        #
+        return day in self.valid_days
+
+
+
+    def getRL_Data(self, day):
+        #
+        # gibt die RL-Daten für einen bestimmten Tag zurück
+        #
+        if (self.isValidDay(day)):
+            return np.load(self.data_path + 'day-' + day + '.npy', allow_pickle=True)
+        else:
+            sys.exit('env.getRL_Data: kein valider Tag: ' + day)

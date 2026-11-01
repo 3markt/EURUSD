@@ -11,7 +11,7 @@ from os import listdir, makedirs
 from os.path import isfile, join, isdir
 
 path = '/home/uwe/Hope/data/final/EURUSD/RL-data/'
-file = 'day-2023-02-03.npy'
+file = 'day-2017-12-22.npy'
 
 x = np.load(path + file, allow_pickle=True)
-print(len(x[2]), x[2])
+print(x[2])

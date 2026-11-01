@@ -14,6 +14,7 @@ import sys
 import gc
 from os import listdir, makedirs
 from os.path import isfile, join, isdir
+from datetime import datetime, timedelta
 import gym
 from gym.envs.registration import register
 from gym.envs.registration import register
@@ -107,7 +108,6 @@ class forexRLDayTrading:
         self.processedpath = self.basepath + 'processed/' + self.currency + '/'
         self.finalpath = self.basepath + 'final/' + self.currency + '/'
         self.schockStandardize = []
-        print(len(self.featureList))
         self.bt = 288
         self.ts = 36
         self.bs = self.bt - self.ts
@@ -480,142 +480,6 @@ class forexRLDayTrading:
                          inplace=True)
 #        self.df_all = df_all[['Close'] + self.techCols]
         self.df_all = df_all[['Close'] + self.techCols + self.waveletCols]
-
-
-
-    def mergeEcoFeature(self, df_eco, name):
-    
-        df_eco.rename({'Actual':name}, axis=1, inplace=True)
-        df_eco.drop('Forecast', axis=1, inplace=True)
-        eco_std = df_eco[name].std()
-        #epath = self.processedpath + 'kalender/test/'
-        #df_eco.to_csv(epath + name + '.csv')
-        
-        df = pd.merge_ordered(self.df_all, df_eco, 
-                              how='left', on='time', 
-                              suffixes=('', name))
-
-        df.rename({'time':'ttime'}, axis=1, inplace=True)
-        df.set_index(pd.DatetimeIndex(df.ttime, name='time'), inplace=True)
-        df.drop('ttime', axis=1, inplace=True)
-        df = df.ffill()
-        #
-        # Verschmutzen der EcoFeatures
-        print(name, eco_std)
-        df[name] = df[name].apply(lambda x: x + np.random.normal(loc=0.0, 
-                                                                 scale=eco_std*0.0001))
-        df = df.dropna()
-        
-        return df
-    
-    
-
-    def mergeEcoSchock(self, df_schock, name, fn):
-        
-        # calculate Mean and STD for standardization
-        s_mean = (df_schock['Actual'] - df_schock['Forecast']).mean()
-        s_std = (df_schock['Actual'] - df_schock['Forecast']).std()
-        self.schockStandardize.append([fn, s_mean, s_std])
-        # merge Schock mit df_all
-        df = pd.merge_ordered(self.df_all, df_schock, 
-                              how='left', on='time', 
-                              suffixes=('', name))
-        df.rename({'time':'ttime'}, axis=1, inplace=True)
-        df.set_index(pd.DatetimeIndex(df.ttime, name='time'), inplace=True)
-        #
-        # Berechnen der Schocks
-        #
-        df['schock'] = ((df['Actual'] - df['Forecast'] - s_mean)/s_std) \
-                        .round(decimals=2)
-        #
-        # addiere die Schocks zum Schock-Feature
-        df.loc[df['schock'].notna(), name] = df[name] + df['schock']
-        
-        #
-        # Verschmutzen der EcoFeatures - damit wir nicht nur konstante Werte
-        # in einem Batch bekommen (dies führt zu loss == nan)
-        df[name] = df[name].apply(lambda x: x + np.random.normal(loc=0.0, 
-                                                               scale=s_std*0.0001))
-
-        # und zum Schluß Löschen der Hilfsspalten
-        df = df.drop(['ttime', 'schock',  'Actual', 'Forecast'], axis=1)
-      
-        return df
-    
-
-
-    def prepareEcoData(self, path, fn):
-        #
-        # Einlesen der Daten
-        df = pd.read_csv(path + fn,
-                         dtype={'Actual': str, 
-                                'Forecast': str,
-                                'Previous': str})
-        df.rename({'Release Date':'Date'}, inplace=True, axis=1)
-        #
-        # Bereinigen der Daten
-        df['Date'] = df['Date'].apply(self.cleanEcoDate)
-        df = df.apply(self.missingEcoData, axis = 1)
-        df['Actual'] = df['Actual'].apply(self.cleanEcoPct)
-        df['Forecast'] = df['Forecast'].apply(self.cleanEcoPct)
-        #
-        # Zusammenfassen von Date und Time
-        df['time'] = pd.to_datetime(df['Date'] + ' ' + df['Time'], dayfirst=True)
-        #
-        # Zeit-Index Festlegen
-        df.set_index(pd.DatetimeIndex(df.time), inplace=True)
-        #
-        # Umwandeln von Europe/Berlin auf utc - 1 Stunde abziehen
-        df.index = df.index.tz_localize('Europe/Berlin', ambiguous='infer').tz_convert('UTC')
-        #
-        # Löschen möglicher Duplikate, insbesondere beim Übergang von Sommerzeit auf Winterzeit
-        df = df[~df.index.duplicated(keep='first')]
-        #
-        # Löschen der ueberfluessigen Spalten
-        df.drop(['Date', 'Time', 'Previous', 'time'], axis=1, inplace=True)
-        #
-        # zur Sicherheit nochmals sortieren
-        df = df.sort_values(by='time')
-        
-        return df
-       
-        
-       
-    def addEcoData(self):
-        
-        epath = self.processedpath + 'kalender/'
-        
-        df_cal = pd.read_csv(epath + 'Kalender_Features.csv')
-        #
-        # Feature Name und Dateiname in eine Liste
-        features = df_cal[['FeatureName', 'FileName']].values.tolist()
-        features = [[f[0].strip(), f[1].strip()] for f in features]
-        #
-        # Schleife über der Feature-Liste
-        for feature in features:
-            print('processing Feature', feature)
-            if (feature[0][:7] != 'Schock_'):
-                #
-                # Verarbeitung der normalen Feature
-                df_feature = self.prepareEcoData(epath, feature[1])
-                self.df_all = self.mergeEcoFeature(df_feature, feature[0])
-            else:
-                #
-                # Verarbeitung der Schocks
-                fn_l = feature[1].split(',')
-                self.df_all[feature[0]] = 0.0
-                for fn in fn_l:
-                    print('processing Schock', fn)
-                    df_schock = self.prepareEcoData(epath, fn.strip())
-                    self.df_all = self.mergeEcoSchock(df_schock, 
-                                                      feature[0],
-                                                      fn.strip())
-                    
-                print(feature[0], 
-                      self.df_all[feature[0]].min(), 
-                      self.df_all[feature[0]].max())
-
-        #self.df_all.to_csv(epath + 'test/test.csv')
 
 
 
@@ -1125,8 +989,27 @@ class forexRLDayTrading:
             
             torch.save(model.state_dict(), 
                        self.finalpath + 'model/initModel/initModel.pt')
-         
-    
+
+
+
+    def add_business_day(self, date_string, date_format="%Y-%m-%d"):
+        # 1. String in ein Datumsobjekt umwandeln
+        date_obj = datetime.strptime(date_string, date_format)
+
+        # 2. Immer mindestens 1 Tag addieren
+        date_obj += timedelta(days=1)
+
+        # 3. Wenn Samstag (5), addiere 2 Tage extra -> Montag
+        if date_obj.weekday() == 5:
+            date_obj += timedelta(days=2)
+        # Wenn Sonntag (6), addiere 1 Tag extra -> Montag
+        elif date_obj.weekday() == 6:
+            date_obj += timedelta(days=1)
+
+        # 4. Zurück in einen String konvertieren
+        return date_obj.strftime(date_format)
+
+
        
     def rate_LRscheduler(self, i, rate): 
         
@@ -1155,7 +1038,8 @@ class forexRLDayTrading:
     def rate_ERscheduler(self, i, rate): 
         
         if (rate > 0.01):
-            rate = rate * np.exp(-(1/(12000 + i)))
+            rate = rate * np.exp(-(1 / (64000 + i)))
+        #    rate = rate * np.exp(-(1/(12000 + i)))
         else:
             rate = 0.01
             
@@ -1174,8 +1058,41 @@ class forexRLDayTrading:
                          self.exploration_rate,
                          self.learning_rate)
     
- 
-         
+
+
+    def evalOneDay(self, env, trader, day):
+        #
+        # Methode berechnet den Profit für einen Tage
+        #
+        batch_id = day[0]
+        close = day[2]
+        action = trader.predictOneDay(day)
+        profit = 0.
+        position = 0
+        last_i = None
+        i = 0
+        for a in action:
+            if (a == 0):
+                if (position in [-1, 1]):
+                    profit += position * (close[i] - close[last_i]) - self.trade_fee
+                    last_i = None
+            elif (a == 1):
+                if (position == -1):
+                    profit += a * (close[i] - close[last_i]) - self.trade_fee
+                    last_i = i
+                elif (position == 0):
+                    last_i = i
+            elif (a == -1):
+                if (position == 1):
+                    profit += a * (close[i] - close[last_i]) - self.trade_fee
+                    last_i = i
+                elif (position == 0):
+                    last_i = i
+            position = a
+
+        return batch_id, profit
+
+
  
     def fitForexDayTrader(self):
                   
@@ -1222,15 +1139,46 @@ class forexRLDayTrading:
                                 self.ts,
                                 self.ff)
         result = []
-        for i in range(start, end):
+        start_dt = '2005-02-01'
+        end_dt = '2015-12-31'
+        i = 0
+        while (end_dt < '2026-06-30'):
             #
             # äusserer Loop über alle Iterationen
             #
-            self.setIterRates(trader, i)    
+            i += 1
+            self.setIterRates(trader, i)
             action_hold = 0
             action_buy = 0
             action_sell = 0
-            curr_state, info = env.reset()
+            if (i == 500000):
+                #
+                # Beginn des rollierenden Training - wir initialisieren ein rollierendes 3-Jahres-Fenster
+                start_dt = '2013-01-02'
+                end_dt = '2015-12-31'
+            elif (i >= 500000):
+                if (i % 10000 == 0):
+                    #
+                    # alle 10000 iterationen wird das Zeitfenster um 1 Tag erhöht und der Folgetag bewertet
+                    #
+                    validDay = False
+                    while not validDay:
+                        start_dt = self.add_business_day(start_dt)
+                        validDay = env.isValidDay(start_dt)
+                    validDay = False
+                    while not validDay:
+                        end_dt = self.add_business_day(end_dt)
+                        validDay = env.isValidDay(end_dt)
+
+                    print('Neues StartDate = {}, neues EndDate = {}'.format(start_dt, end_dt))
+                    #
+                    # das neue End-Datum mit dem aktuellen Modell bewerten
+                    #
+                    newDay = env.getRL_Data(end_dt)
+                    nd_batch_id, nd_profit = self.evalOneDay(env, trader, newDay)
+                    print('-----> neues EndDate (batch_id = {}) Profit = {}'.format(nd_batch_id, nd_profit))
+
+            curr_state, info = env.reset(start_dt, end_dt)
             curr_state = curr_state.reshape(1, self.ts, self.ff)
             for j in range(self.bs):
                 #
@@ -1341,17 +1289,18 @@ periodEndDt = '2026-06-30 23:55:00'
 
 eurusdData = forexRLDayTrading('EURUSD')
 
+"""
 eurusdData.processCandle()
 
-#eurusdData.addEcoData()
 eurusdData.addEcoFeatures()
 
 eurusdData.formatFinalVersion(startDt = periodStartDt,
                               endDt = periodEndDt)
 
-#eurusdData.createABT()
+eurusdData.createABT()
 
 eurusdData.fitInitialModel()
+"""
 
 eurusdData.fitForexDayTrader()
 

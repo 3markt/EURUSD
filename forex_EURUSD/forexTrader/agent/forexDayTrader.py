@@ -362,6 +362,23 @@ class ForexDayTrader:
         self.dreaming_rate = dreaming_rate
         self.epsilon = exploration_rate
         self.learning_rate = learning_rate
-        
-       
+
+
+
+    def predictOneDay(self, x):
+        #
+        # Methode prognostiziert genau einen Tag und liefert ein Action-Array für diesen Tag zurück
+        # x muss die Form haben (bs, ts, ff), mit
+        # bs = batch size (bei ts = 36 wäre dies 252
+        # ts = time sequence
+        # ff = Anzahl der Feature
+        #
+        state_tt = torch.from_numpy(x)
+        self.decision_model.eval()
+        action_tt, _ = self.decision_model(state_tt)
+        action = action_tt[:, -1, :].detach().numpy().reshape(self.bs, 1, 3)
+        action[action == 2] = -1
+
+        return action
+
         
