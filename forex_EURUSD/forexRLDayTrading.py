@@ -1067,7 +1067,7 @@ class forexRLDayTrading:
         batch_id = day[0]
         close = day[2]
         x = day[3].astype(np.float32)
-        action = trader.predictOneDay(x)
+        action = trader.predictOneDay(x).tolist()
         profit = 0.
         position = 0
         last_i = None
