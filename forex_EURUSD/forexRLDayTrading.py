@@ -1072,27 +1072,31 @@ class forexRLDayTrading:
         position = 0
         last_i = None
         i = 0
+        num_trades = 0
         for a in action:
             if (a == 0):
                 if (position in [-1, 1]):
                     profit += position * (close[i] - close[last_i]) - self.trade_fee
                     last_i = None
+                    num_trades += 1
             elif (a == 1):
                 if (position == -1):
                     profit += a * (close[i] - close[last_i]) - self.trade_fee
                     last_i = i
+                    num_trades += 1
                 elif (position == 0):
                     last_i = i
             elif (a == -1):
                 if (position == 1):
                     profit += a * (close[i] - close[last_i]) - self.trade_fee
                     last_i = i
+                    num_trades += 1
                 elif (position == 0):
                     last_i = i
             position = a
             i += 1
 
-        return batch_id, profit, sum(abs(x) for x in action)
+        return batch_id, profit, sum(abs(x) for x in action), num_trades
 
 
  
@@ -1177,10 +1181,11 @@ class forexRLDayTrading:
                     # das neue End-Datum mit dem aktuellen Modell bewerten
                     #
                     newDay = env.getRL_Data(end_dt)
-                    nd_batch_id, nd_profit, num_action = self.evalOneDay(trader, newDay)
-                    print('--> neues EndDate (batch_id = {}) Profit = {} # Trades ={} '.format(nd_batch_id,
-                                                                                               nd_profit,
-                                                                                               num_action))
+                    nd_batch_id, nd_profit, num_action, num_trades = self.evalOneDay(trader, newDay)
+                    print('--> neues EndDate (batch_id={}) Profit={} #Action={} #Trades={} '.format(nd_batch_id,
+                                                                                                    nd_profit,
+                                                                                                    num_action,
+                                                                                                    num_trades))
 
             curr_state, info = env.reset(options={"start_dt": start_dt, "end_dt": end_dt})
             curr_state = curr_state.reshape(1, self.ts, self.ff)
