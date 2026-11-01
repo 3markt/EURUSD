@@ -1145,6 +1145,7 @@ class forexRLDayTrading:
                                 self.ts,
                                 self.ff)
         result = []
+        result_profit = []
         start_dt = '2005-02-01'
         end_dt = '2015-12-31'
         i = 0
@@ -1182,10 +1183,17 @@ class forexRLDayTrading:
                     #
                     newDay = env.getRL_Data(end_dt)
                     nd_batch_id, nd_profit, num_action, num_trades = self.evalOneDay(trader, newDay)
-                    print('--> neues EndDate (batch_id={}) Profit={} #Action={} #Trades={} '.format(nd_batch_id,
-                                                                                                    nd_profit,
-                                                                                                    num_action,
-                                                                                                    num_trades))
+                    result_profit.append([end_dt,
+                                          nd_batch_id,
+                                          nd_profit,
+                                          num_action,
+                                          num_trades])
+                    df_profit = pd.DataFrame(result_profit, columns=['Datum',
+                                                                     'Batch_id',
+                                                                     'Profit',
+                                                                     'Anzahl Action <> 0',
+                                                                     'Anzahl Trades')
+                    df_profit.to_csv(self.finalpath + 'result/profit-results.csv', index=False)
 
             curr_state, info = env.reset(options={"start_dt": start_dt, "end_dt": end_dt})
             curr_state = curr_state.reshape(1, self.ts, self.ff)
