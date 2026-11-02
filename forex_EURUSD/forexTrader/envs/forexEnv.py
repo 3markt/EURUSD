@@ -257,6 +257,9 @@ class ForexEnv(gym.Env):
 
 
     def calculate_reward(self, action):
+        #
+        # Methode berechnet den RL-reward basierend auf den Werten von Log Profit, Position und Action
+        #
         assert action in [-1, 0, 1]
 
         r = self.no_trade_fee

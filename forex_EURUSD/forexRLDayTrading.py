@@ -1178,7 +1178,6 @@ class forexRLDayTrading:
                     print('Neues StartDate = {}, neues EndDate = {}'.format(start_dt, end_dt))
                     #
                     # das neue End-Datum mit dem aktuellen Modell bewerten
-                    #
                     newDay = env.getRL_Data(end_dt)
                     nd_batch_id, nd_profit, num_action, num_trades = self.evalOneDay(trader, newDay)
                     result_profit.append([end_dt,
