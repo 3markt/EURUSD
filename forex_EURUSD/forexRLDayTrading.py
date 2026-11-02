@@ -1081,14 +1081,14 @@ class forexRLDayTrading:
                     num_trades += 1
             elif (a == 1):
                 if (position == -1):
-                    profit += a * (close[i] - close[last_i]) - self.trade_fee
+                    profit += position * (close[i] - close[last_i]) - self.trade_fee
                     last_i = i
                     num_trades += 1
                 elif (position == 0):
                     last_i = i
             elif (a == -1):
                 if (position == 1):
-                    profit += a * (close[i] - close[last_i]) - self.trade_fee
+                    profit += position * (close[i] - close[last_i]) - self.trade_fee
                     last_i = i
                     num_trades += 1
                 elif (position == 0):
@@ -1114,12 +1114,11 @@ class forexRLDayTrading:
         ### change re-start parameter here ####
         #self.dr = 0.75
         self.dreaming_rate = 1.0
-        self.exploration_rate = 0.99
+        self.exploration_rate = 0.4818
         self.learning_rate = 0.005
-        init_weight_name = 'initModel'
+        init_weight_name = 'bestModel'
         self.last_best_upd = 0
-        start = 1
-        end = 100000000
+        i = 67500
         ### change re-start parameter here ####
         #######################################
         #
@@ -1148,7 +1147,6 @@ class forexRLDayTrading:
         result_profit = []
         start_dt = '2005-02-01'
         end_dt = '2015-12-31'
-        i = 0
         while (end_dt < '2026-06-30'):
             #
             # äusserer Loop über alle Iterationen
