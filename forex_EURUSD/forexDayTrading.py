@@ -339,32 +339,21 @@ class forexRLDayTrading:
         # ausfällen
         df = df.sort_index()
         #
-        # Löschen der Samstage und Sonntage
-        df = df[(df.index.weekday != 5)]
-        df = df[(df.index.weekday != 6)]
-        # Weihnachten, Sylvester und Neujahr müssen weg
-        df = df[(df.index.month != 12) | (df.index.day != 24)]
-        df = df[(df.index.month != 12) | (df.index.day != 25)]
-        df = df[(df.index.month != 12) | (df.index.day != 31)]
-        df = df[(df.index.month != 1) | (df.index.day != 1)]
-        print('Anzahl Tage nach Löschen von Feiertagen', len(df))
-        df = df.sort_index()
-        #
         # Erzeugen der techCols
-        df_all = self.createTechInd(df)
+        df = self.createTechInd(df)
         #
         # Erzeugen der waveletCols und skalieren der total energies
-        df_all = self.calculate_optimized_wavelet_features(df_all)
-        df_all = self.scale_total_energies(df_all)
+        df = self.calculate_optimized_wavelet_features(df)
+        df = self.scale_total_energies(df)
         #
         # Fehlende Werte müssen nach Vorne aufgefüllt werden
-        df_all = df_all.ffill()
+        df = df.ffill()
         #
         # Fehlende Werte am Anfang werden gelöscht
-        df_all = df_all.dropna()
+        df = df.dropna()
         #
         # und zum Schluss speichern in zentralem Dataframe
-        self.df_all = df_all[['Close'] + self.techCols]
+        self.df_all = df[['Close'] + self.techCols]
 
 
 
@@ -571,7 +560,17 @@ class forexRLDayTrading:
         sys.stdout.flush()
         #
         # fehlende Werte müssen über ffill befüllt werden
-        self.df_all = self.df_all.ffill()
+        self.df_all = self.df_all.asfreq('5min', method='ffill')
+        #
+        # Löschen der Samstage und Sonntage
+        self.df_all = self.df_all[(self.df_all.index.weekday != 5)]
+        self.df_all = self.df_all[(self.df_all.index.weekday != 6)]
+        # Weihnachten, Sylvester und Neujahr müssen weg
+        self.df_all = self.df_all[(self.df_all.index.month != 12) | (self.df_all.index.day != 24)]
+        self.df_all = self.df_all[(self.df_all.index.month != 12) | (self.df_all.index.day != 25)]
+        self.df_all = self.df_all[(self.df_all.index.month != 12) | (self.df_all.index.day != 31)]
+        self.df_all = self.df_all[(self.df_all.index.month != 1) | (self.df_all.index.day != 1)]
+        print('Anzahl Beobachtungen nach Löschen von Feiertagen', len(self.df_all))
         #
         # und sicherheitshalber nochmals sortieren
         self.df_all = self.df_all.sort_index()
@@ -586,7 +585,6 @@ class forexRLDayTrading:
             n_nan = self.df_all[c].isnull().sum()
             print('Fehlende Werte in Spalte ' + c, n_nan)
 
-        self.df_all[self.df_all.isnull()].to_csv(cpath + 'df_all_isnull.csv')
         self.df_all.to_csv(cpath + 'df_all.csv')
 
         #
@@ -615,7 +613,7 @@ class forexRLDayTrading:
         df_days = dff.index
         self.days = df_days.values.tolist()
         dff = dff[dff['Close'] < self.bt]
-        dff.to_csv(cpath + 'FullDayCheck.csv')
+        dff['Close'].to_csv(cpath + 'FullDayCheck.csv')
        
         
        
