@@ -338,7 +338,6 @@ class forexRLDayTrading:
         # auf Sommerzeit (es fehlt dann 1 Stunde), oder aufgrund von System-
         # ausfällen
         df = df.sort_index()
-        df = df.asfreq('5min', method='ffill')
         #
         # Löschen der Samstage und Sonntage
         df = df[(df.index.weekday != 5)]
@@ -350,11 +349,6 @@ class forexRLDayTrading:
         df = df[(df.index.month != 1) | (df.index.day != 1)]
         print('Anzahl Tage nach Löschen von Feiertagen', len(df))
         df = df.sort_index()
-        #
-        # Konvertierung auf andere Zeitskalen, Erzeugen der technischen Indikatoren und Erzeugen der Wavelet-Features
-        # für 5 Minuten-Skala
-        #
-        # 5 Minuten müssen nicht konvertiert werden
         #
         # Erzeugen der techCols
         df_all = self.createTechInd(df)
@@ -369,10 +363,7 @@ class forexRLDayTrading:
         # Fehlende Werte am Anfang werden gelöscht
         df_all = df_all.dropna()
         #
-        # und zum Schluss wird der Zeit-Index wieder erneuert
-        df_all.rename({'time':'ttime'}, axis=1, inplace=True)
-        df_all.set_index(pd.DatetimeIndex(df_all.ttime, name='time'), 
-                         inplace=True)
+        # und zum Schluss speichern in zentralem Dataframe
         self.df_all = df_all[['Close'] + self.techCols]
 
 
@@ -667,13 +658,15 @@ class forexRLDayTrading:
         
         position = np.array(self.bt*[0.]).astype(float)
         currProfit = np.array(self.bt*[0.]).astype(float)
+        currTradeLength = np.array(self.bt * [0.]).astype(float)
         
-        rw = np.c_[position, currProfit, reward]
+        rw = np.c_[position, currProfit, currTradeLength, reward]
 
         df_day = pd.concat([df_day, 
                             pd.DataFrame(rw, 
                                          columns=['Position',
                                                   'currProfit',
+                                                  'currTradeLength',
                                                   'Reward-Hold', 
                                                   'Reward-Buy',
                                                   'Reward-Sell'])], 
