@@ -294,7 +294,7 @@ class forexRLDayTrading:
                 dfirst = True
             dfi = pd.read_csv(cpath + c, parse_dates=[0], dayfirst=dfirst)
             dfi.rename({'Gmt time': 'ttime'}, inplace=True, axis=1)
-            dfi = dfi[['ttime', 'Open', 'High', 'Low', 'Close', ]]
+            dfi = dfi[['ttime', 'Open', 'High', 'Low', 'Close', 'Volume']]
             df = pd.concat([df, dfi])
         #
         # re-initialisieren des Index
