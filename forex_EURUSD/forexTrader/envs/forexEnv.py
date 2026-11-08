@@ -153,7 +153,7 @@ class ForexEnv(gym.Env):
             batch_id = self.all_data[self.batch_id][0],
             i = self.current_tick,
             last_trade = self.last_trade_tick,
-            materialized_reward = 0.0,
+            profit = 0.0,
             total_reward = self.total_reward,
             total_reward_long = self.total_reward_long,
             total_reward_short = self.total_reward_short,
@@ -178,10 +178,10 @@ class ForexEnv(gym.Env):
             
         reward = self.calculate_reward(action)
         
-        mat_reward, mr_long, mr_short, long, short, hold = self.materialized_reward(action)
-        self.total_reward += mat_reward
-        self.total_reward_long += mr_long
-        self.total_reward_short += mr_short
+        profit, p_long, p_short, long, short, hold = self.calculate_profit(action)
+        self.total_reward += profit
+        self.total_reward_long += p_long
+        self.total_reward_short += p_short
         self.n_long += long
         self.n_short += short
         self.n_hold += hold
@@ -190,7 +190,7 @@ class ForexEnv(gym.Env):
             batch_id = self.all_data[self.batch_id][0],
             i = self.current_tick,
             last_trade = self.last_trade_tick,
-            materialized_reward = mat_reward,
+            profit = profit,
             total_reward = self.total_reward,
             total_reward_long = self.total_reward_long,
             total_reward_short = self.total_reward_short,
@@ -224,13 +224,15 @@ class ForexEnv(gym.Env):
         #
         # zwischenspeichern von simulierter Position und Current Profit
         self.state = self.state.reshape(self.ts, self.ff)
-        position_currProfit = self.state[1:, :2]
+        position_currVars = self.state[1:, :3]
         self.state = self.feature_values[self.current_tick]
         #
         # überschreiben der simulierten Position und Current Profit
-        self.state[:-1, :2] = position_currProfit
+        currProfit, currTradeLength = self.calculate_current_vars()
+        self.state[:-1, :3] = position_currVars
         self.state[-1, 0] = self.position.value
-        self.state[-1, 1] = self.calculate_current_vars()
+        self.state[-1, 1] = currProfit
+        self.state[-1, 2] = currTradeLength
 
         return np.float32(self.state).reshape(self.ts*self.ff)
 
@@ -319,6 +321,9 @@ class ForexEnv(gym.Env):
         if (self.std_cp == 0.0):
             self.std_cp = 1.0
 
+        currProfit = (currProfit - self.mean_cp)/self.std_cp
+
+        #
         # calculate current trade length
         self.sum_current_trade_length += currTradeLength
         self.sum2_current_trade_length += currTradeLength ** 2
@@ -327,6 +332,8 @@ class ForexEnv(gym.Env):
                               - self.mean_ctl ** 2)
         if (self.std_ctl == 0.0):
             self.std_ctl = 1.0
+
+        currTradeLength = (currTradeLength - self.mean_ctl)/self.std_ctl
 
         if (self.cnt_calculate_current_vars % 500000 == 0):
             pd.DataFrame({'mean_cp': [self.mean_cp],
@@ -340,11 +347,16 @@ class ForexEnv(gym.Env):
         elif (currProfit < -5):
             currProfit = -5
 
-        return currProfit
+        if (currTradeLength > 5):
+            currTradeLength = 5
+        elif (currTradeLength < -5):
+            currTradeLength = -5
+
+        return currProfit, currTradeLength
         
         
     
-    def materialized_reward(self, action):
+    def calculate_profit(self, action):
         assert action in [-1, 0, 1]
 
         r = 0.

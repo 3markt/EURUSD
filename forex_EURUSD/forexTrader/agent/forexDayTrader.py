@@ -27,7 +27,7 @@ import torch.utils.data as data
 
 class myLSTM(nn.Module):
     
-    def __init__(self, inputsize=85, hiddensize=64, outputsize=3):
+    def __init__(self, inputsize=65, hiddensize=64, outputsize=3):
         
         #super().__init__()
         super(myLSTM, self).__init__()
