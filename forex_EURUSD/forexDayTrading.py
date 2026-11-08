@@ -164,7 +164,7 @@ class forexRLDayTrading:
 
 
 
-    def calculate_optimized_wavelet_features(df: pd.DataFrame) -> pd.DataFrame:
+    def calculate_optimized_wavelet_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Berechnet ein schlankes, gematchtes Feature-Set aus EURUSD 5-Minuten-Kursen.
         Verhindert Daten-Redundanz und schützt das LSTM vor Overfitting.
@@ -257,7 +257,7 @@ class forexRLDayTrading:
 
 
 
-    def scale_total_energies(df):
+    def scale_total_energies(self, df):
         total_cols = ['we32_total', 'we64_total', 'we128_total', 'we256_total']
 
         # 1. Logarithmieren, um die winzigen Werte linear zu strecken
@@ -361,7 +361,7 @@ class forexRLDayTrading:
         #
         # Erzeugen der waveletCols und skalieren der total energies
         df_all = self.calculate_optimized_wavelet_features(df_all)
-        df_all = scale_total_energies(df_all)
+        df_all = self.scale_total_energies(df_all)
         #
         # Fehlende Werte müssen nach Vorne aufgefüllt werden
         df_all = df_all.ffill()
