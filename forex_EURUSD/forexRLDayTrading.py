@@ -66,18 +66,6 @@ class forexRLDayTrading:
 
     waveletCols = ['wavelet_energy_D4', 'wavelet_energy_D3', 'wavelet_energy_D2', 'wavelet_energy_D1']
 
-    """
-    ecoCols = ['CPI_US' , 'CPI_EU', 
-               'Zins_US', 'Zins_EU', 
-               'Schock_Preis_US', 'Schock_Preis_EU', 
-               'Schock_Nachfrage_US', 'Schock_Nachfrage_EU', 
-               'Schock_Produktion_US', 'Schock_Produktion_DE', 
-               'UnemploymentRate_US', 'JoblessInitial_US',  
-               'JoblessContinued_US', 'UnemploymentRate_EU', 
-               'Schock_Arbeitsmarkt_US', 'Schock_Arbeitsmarkt_EU',
-               'Schock_Konjunktur_US', 'Schock_Konjunktur_EU']
-    """
-
     ecoCols = ['brent_oil', 'delta1_brent_oil', 'delta5_brent_oil', 'spread_3m_expected_zins',
                'delta1_spread_3m_expected_zins', 'delta5_spread_3m_expected_zins', 'us_fed_zins', 'spread_us_eu_zins',
                'delta1_spread_us_eu_zins', 'spread_us_de_2y_zins', 'delta1_spread_us_de_2y_zins',
@@ -91,13 +79,11 @@ class forexRLDayTrading:
                'schock_us_ism_pmi_manufact', 'schock_us_ism_pmi_service', 'schock_us_unemployment',
                'schock_eu_unemployment', 'schock_us_jobless_initial', 'schock_us_employment_change',
                'schock_us_offene_stellen', 'schock_us_einzelhandelsumsatz']
-        
-#    scaledCols = techCols + ecoCols
+
     scaledCols = techCols + ecoCols + waveletCols
 
     target = ['Reward-Hold', 'Reward-Buy', 'Reward-Sell']
 
-#    featureList = ['Position', 'currProfit'] + techCols + ecoCols
     featureList = ['Position', 'currProfit'] + techCols + ecoCols + waveletCols
     
     def __init__(self, currency):

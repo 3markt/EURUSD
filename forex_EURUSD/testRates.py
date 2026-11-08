@@ -19,7 +19,7 @@ def setIterRates(rate, i):
 
 lr = 0.99
 
-for i in range(10000000):
+for i in range(8000000):
     lr = setIterRates(lr, i)
 print(lr)
 
