@@ -104,11 +104,13 @@ class ForexEnv(gym.Env):
         # Standard-Fallbacks definieren, falls keine Datumsangaben übergeben werden
         start_dt = None
         end_dt = None
+        end_dt_fix = None
         #
         # Werte aus dem options-Dictionary auslesen, falls vorhanden
         if options is not None:
             start_dt = options.get("start_dt")
             end_dt = options.get("end_dt")
+            end_dt_fix = options.get("end_dt_fix")
 
         if (self.iter%self.batch_duration == 0):
             #
@@ -120,8 +122,19 @@ class ForexEnv(gym.Env):
             n_dfiles = len(dfiles)
             if (n_dfiles < self.n_batch):
                 sys.exit('Anzahl ausgewählter RL-Daten {} kleiner als Batch-Size {}'.format(n_dfiles, self.n_batch))
-
-            sfiles = np.random.choice(dfiles, size=self.n_batch, replace=False)
+            #
+            # Erzeugen des training samples
+            if not end_dt_fix:
+                #
+                # alle Daten werden zufällig ausgewählt
+                sfiles = np.random.choice(dfiles, size=self.n_batch, replace=False)
+            else:
+                #
+                # sicherstellen, dass Daten für end_dt immer im Training Sample sind
+                f_end_dt = 'day-' + end_dt + '.npy'
+                dfiles = [f for f in dfiles if f != f_end_dt]
+                sfiles = np.random.choice(dfiles, size=self.n_batch-1, replace=False)
+                sfiles = np.append(sfiles, [f_end_dt])
 
             self.all_data = np.array((), dtype=object)
             for s in sfiles:

@@ -100,19 +100,6 @@ class forexRLDayTrading:
         self.best_model = self.finalpath + 'model/bestModel/bestModel'
         self.last_best_upd = 0
 
-        
-                
-    def convertCandle(self, df, freq):
-        
-        dfs = df.resample(freq, label='right', closed='right')
-        df_new = dfs['Open'].first().to_frame()
-        df_new['High'] = dfs['High'].max()
-        df_new['Low'] = dfs['Low'].min()
-        df_new['Close'] = dfs['Close'].last()
-        df_new = df_new.dropna()
-        
-        return df_new
-       
 
 
     def cleanEcoDate(self, row):
@@ -1030,6 +1017,7 @@ class forexRLDayTrading:
         result_profit = []
         start_dt = '2005-02-01'
         end_dt = '2015-12-31'
+        end_dt_fix = False
         while (end_dt < '2026-06-30'):
             #
             # äusserer Loop über alle Iterationen
@@ -1041,7 +1029,7 @@ class forexRLDayTrading:
             action_sell = 0
             if (i == 500000):
                 #
-                # Beginn des rollierenden Training - wir initialisieren ein rollierendes 3-Jahres-Fenster
+                # Beginn des rollierenden Training - initialisieren eins rollierenden 3-Jahres-Fenster
                 start_dt = '2013-01-02'
                 end_dt = '2015-12-31'
             elif (i > 500000):
@@ -1053,11 +1041,16 @@ class forexRLDayTrading:
                     while not validDay:
                         start_dt = self.add_business_day(start_dt)
                         validDay = env.isValidDay(start_dt)
+
                     validDay = False
                     while not validDay:
                         end_dt = self.add_business_day(end_dt)
                         validDay = env.isValidDay(end_dt)
-
+                    #
+                    # die Daten für das neue end_dt sollen während des rollierenden Trainings immer in das Training Sample
+                    # aufgenommen werden
+                    end_dt_fix = True
+                    #
                     print('Neues StartDate = {}, neues EndDate = {}'.format(start_dt, end_dt))
                     #
                     # das neue End-Datum mit dem aktuellen Modell bewerten
@@ -1075,8 +1068,12 @@ class forexRLDayTrading:
                                                                      'Anzahl Trades'])
                     df_profit.to_csv(self.finalpath + 'result/profit-results.csv', index=False)
 
-            curr_state, info = env.reset(options={"start_dt": start_dt, "end_dt": end_dt})
+            curr_state, info = env.reset(options={"start_dt": start_dt,
+                                                  "end_dt": end_dt,
+                                                  "end_dt_fix": end_dt_fix})
+
             curr_state = curr_state.reshape(1, self.ts, self.ff)
+
             for j in range(self.bs):
                 #
                 # innerer Loop über den Tag
@@ -1186,6 +1183,7 @@ periodEndDt = '2026-06-30 23:55:00'
 
 eurusdData = forexRLDayTrading('EURUSD')
 
+"""
 eurusdData.processCandle()
 
 eurusdData.addEcoFeatures()
@@ -1196,6 +1194,7 @@ eurusdData.formatFinalVersion(startDt = periodStartDt,
 eurusdData.createABT()
 
 eurusdData.fitInitialModel()
+"""
 
 eurusdData.fitForexDayTrader()
 
