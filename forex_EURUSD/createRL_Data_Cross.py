@@ -21,5 +21,4 @@ for fn in dfiles:
     day = fn[4:14]
     batch_id = rl[0]
     crossX.append([batch_id, day])
-print(crossX)
 pd.DataFrame(crossX, columns=['batch_id', 'day']).sort_values(by=['batch_id']).to_csv(opath + 'rl-data-crossX.csv', index=False)
