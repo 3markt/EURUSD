@@ -9,9 +9,16 @@ import numpy as np
 import pandas as pd
 from os import listdir, makedirs
 from os.path import isfile, join, isdir
+import matplotlib.pyplot as plt
+plt.figure(figsize=(12, 8)) # Schön groß machen!
+
 
 path = '/home/uwe/Hope/data/final/EURUSD/RL-data/'
-file = 'day-2017-12-22.npy'
+file = 'day-2010-05-17.npy'
 
-x = np.load(path + file, allow_pickle=True)
-print(x[0])
+y = np.load(path + file, allow_pickle=True)[2]
+x = range(len(y))
+
+plt.scatter(x, y, linewidth=0.1)
+plt.grid()
+plt.show()

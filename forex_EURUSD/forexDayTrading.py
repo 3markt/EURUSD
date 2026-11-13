@@ -986,9 +986,9 @@ class forexRLDayTrading:
         self.dreaming_rate = 1.0
         self.exploration_rate = 0.99
         self.learning_rate = 0.005
-        init_weight_name = 'initModel'
+        init_weight_name = 'bestModel'
         self.last_best_upd = 0
-        i = 0
+        i = 408500
         ### change re-start parameter here ####
         #######################################
         #
@@ -1027,12 +1027,12 @@ class forexRLDayTrading:
             action_hold = 0
             action_buy = 0
             action_sell = 0
-            if (i == 500000):
+            if (i == 600000):
                 #
                 # Beginn des rollierenden Training - initialisieren eins rollierenden 3-Jahres-Fenster
                 start_dt = '2013-01-02'
                 end_dt = '2015-12-31'
-            elif (i > 500000):
+            elif (i > 600000):
                 if (i % 5000 == 0):
                     #
                     # alle 5000 iterationen wird das Zeitfenster um 1 Tag erhöht und der Folgetag bewertet
