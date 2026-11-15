@@ -40,7 +40,7 @@ class ForexEnv(gym.Env):
         self.start_tick = 0
         self.end_tick = self.bs - 1
         self.trade_fee = 1.0
-        self.no_trade_fee = -0.05
+        self.no_trade_fee = -0.1
 
         # episode
         self.done = False
