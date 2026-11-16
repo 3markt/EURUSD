@@ -943,17 +943,24 @@ class forexRLDayTrading:
         last_i = None
         i = 0
         num_trades = 0
+        num_short_trades = 0
+        num_long_trades = 0
         for a in action:
             if (a == 0):
                 if (position in [-1, 1]):
                     profit += position * (close[i] - close[last_i]) - self.trade_fee
                     last_i = None
                     num_trades += 1
+                    if (position == 1):
+                        num_long_trades += 1
+                    elif (position == -1):
+                        num_short_trades += 1
             elif (a == 1):
                 if (position == -1):
                     profit += position * (close[i] - close[last_i]) - self.trade_fee
                     last_i = i
                     num_trades += 1
+                    num_short_trades += 1
                 elif (position == 0):
                     last_i = i
             elif (a == -1):
@@ -961,12 +968,15 @@ class forexRLDayTrading:
                     profit += position * (close[i] - close[last_i]) - self.trade_fee
                     last_i = i
                     num_trades += 1
+                    num_long_trades += 1
                 elif (position == 0):
                     last_i = i
             position = a
             i += 1
+            num_buy_action = sum([abs(x) for x in action if x == 1])
+            num_sell_action = sum([abs(x) for x in action if x == -1])
 
-        return batch_id, profit, sum(abs(x) for x in action), num_trades
+        return batch_id, profit, num_buy_action, num_sell_action, num_trades, num_long_trades, num_short_trades
 
 
  
@@ -1055,17 +1065,29 @@ class forexRLDayTrading:
                     #
                     # das neue End-Datum mit dem aktuellen Modell bewerten
                     newDay = env.getRL_Data(end_dt)
-                    nd_batch_id, nd_profit, num_action, num_trades = self.evalOneDay(trader, newDay)
+                    (nd_batch_id,
+                     nd_profit,
+                     num_buy_action,
+                     num_sell_action,
+                     num_trades,
+                     num_long_trades,
+                     num_short_trades) = self.evalOneDay(trader, newDay)
                     result_profit.append([end_dt,
                                           nd_batch_id,
                                           nd_profit,
-                                          num_action,
-                                          num_trades])
+                                          num_buy_action,
+                                          num_sell_action,
+                                          num_trades,
+                                          num_long_trades,
+                                          num_short_trades])
                     df_profit = pd.DataFrame(result_profit, columns=['Datum',
                                                                      'Batch_id',
                                                                      'Profit',
-                                                                     'Anzahl Action <> 0',
-                                                                     'Anzahl Trades'])
+                                                                     'Anzahl Buy Action',
+                                                                     'Anzahl Sell Action',
+                                                                     'Anzahl Trades',
+                                                                     'Anzahl Long Trades',
+                                                                     'Anzahl Short Trades'])
                     df_profit.to_csv(self.finalpath + 'result/profit-results.csv', index=False)
 
             curr_state, info = env.reset(options={"start_dt": start_dt,
