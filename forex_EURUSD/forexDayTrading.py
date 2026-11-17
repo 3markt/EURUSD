@@ -975,7 +975,14 @@ class forexRLDayTrading:
             position = a
             i += 1
 
-        return [batch_id, profit, num_hold_action, num_sell_action, num_trades, num_long_trades, num_short_trades]
+        return [batch_id,
+                profit,
+                num_hold_action,
+                num_buy_action,
+                num_sell_action,
+                num_trades,
+                num_long_trades,
+                num_short_trades]
 
 
  
