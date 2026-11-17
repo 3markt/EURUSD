@@ -63,6 +63,12 @@ class ForexEnv(gym.Env):
         self.days = np.random.choice(range(self.n_days), size=self.n_batch, replace=False)
         self.all_data = np.array((), dtype=object)
         #
+        # Initiales laden der Trainings Daten
+        for day in self.days:
+            self.all_data = np.append(self.all_data,
+                                      np.load(self.data_path + day, allow_pickle=True))
+
+        #
         # current_profit variables
         self.mean_cp = 0.0
         self.std_cp = 1.0

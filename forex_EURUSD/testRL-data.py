@@ -17,7 +17,8 @@ path = '/home/uwe/Hope/data/final/EURUSD/RL-data/'
 file = 'day-2010-05-17.npy'
 
 y = np.load(path + file, allow_pickle=True).reshape(1,5)
-print(y.shape[0])
+ff = y[0][3].shape[2]
+print(y.shape[0], ff)
 """
 x = range(len(y))
 
