@@ -66,7 +66,7 @@ class ForexEnv(gym.Env):
         # Initiales laden der Daten eines Tages
         self.all_data = np.append(self.all_data,
                                   np.load(self.data_path + self.dfiles[-1], allow_pickle=True))
-
+        print(self.all_data[0][3].shape[2])
         #
         # current_profit variables
         self.mean_cp = 0.0
