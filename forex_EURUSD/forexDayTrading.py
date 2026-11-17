@@ -1035,18 +1035,18 @@ class forexRLDayTrading:
             action_hold = 0
             action_buy = 0
             action_sell = 0
-            if (i < 200000):
+            if (i < 500):
                 if (i%300 == 0):
                     new_data = True
                 else:
                     new_data = False
-            elif (i == 200000):
+            elif (i == 500):
                 #
                 # Beginn des rollierenden Training - initialisieren eins rollierenden 3-Jahres-Fenster
                 start_dt = '2023-01-02'
-                end_dt = '2023-06-31'
+                end_dt = '2023-06-30'
                 self.learning_rate = 0.00005
-            elif (i > 200000):
+            elif (i > 500):
                 if (i % 300 == 0):
                     #
                     # alle 5000 iterationen wird das Zeitfenster um 1 Tag erhöht und der Folgetag bewertet
