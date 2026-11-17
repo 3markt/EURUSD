@@ -14,7 +14,6 @@ from os.path import isfile, join, isdir
 from datetime import datetime, timedelta
 
 
-a = ['aa', 'bb', 'cc', 'dd', 'ee', 'ff']
+a = ['aa', 'bb', 'cc', 'dd', 'ee', 'ff', 'gg']
 
-b = ['zz']
-print(b+a)
+print(a[1:6:2])

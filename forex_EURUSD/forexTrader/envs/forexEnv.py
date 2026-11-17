@@ -109,7 +109,7 @@ class ForexEnv(gym.Env):
             end_dt = options.get("end_dt")
             new_data = options.get("new_data")
 
-        if new_data:
+        if (new_data or iteration%self.batch_duration == 0):
             #
             # lade neue Batches aus dem Zeitfenster [start_dt - end_dt]
             #

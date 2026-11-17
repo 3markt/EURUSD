@@ -881,19 +881,10 @@ class forexRLDayTrading:
        
     def rate_LRscheduler(self, i, rate): 
         
-        if (self.last_best_upd < 500):
-            if (rate > 0.001):
-                # make learning rate smaller
-                rate = rate * np.exp(-(1/(950000 + i)))
-            else:
-                rate = 0.001
+        if (rate > 0.00001):
+            rate = rate * np.exp(-(1/(64000 + i)))
         else:
-            if (rate < 0.01):
-                # make learning rate bigger
-                rate = rate * np.exp((1/(950000 + i)))
-            else:
-                rate = 0.01
-
+            rate = 0.00001
 
         return rate
             
@@ -906,7 +897,7 @@ class forexRLDayTrading:
     def rate_ERscheduler(self, i, rate): 
         
         if (rate > 0.01):
-            rate = rate * np.exp(-(1 / (24000 + i)))
+            rate = rate * np.exp(-(1 / (64000 + i)))
         #    rate = rate * np.exp(-(1/(12000 + i)))
         else:
             rate = 0.01
@@ -920,8 +911,8 @@ class forexRLDayTrading:
         self.exploration_rate = self.rate_ERscheduler(i, self.exploration_rate)
         #self.dr = self.rate_DRscheduler(i, self.dr)
         #self.dreaming_rate = 0.25 + self.dr
-        #self.learning_rate = self.rate_LRscheduler(i, self.learning_rate)
-            
+        self.learning_rate = self.rate_LRscheduler(i, self.learning_rate)
+
         trader.set_rates(self.dreaming_rate,
                          self.exploration_rate,
                          self.learning_rate)
@@ -1000,6 +991,7 @@ class forexRLDayTrading:
         ### change re-start parameter here ####
         #self.dr = 0.75
         self.dreaming_rate = 1.0
+        self.learning_rate = 0.001
         self.exploration_rate = 0.99
         init_weight_name = 'initModel'
         self.last_best_upd = 0
@@ -1031,37 +1023,25 @@ class forexRLDayTrading:
                                 self.ff)
         result = []
         result_profit = []
-        start_dt = '2015-01-02'
-        end_dt = '2022-12-31'
+        start_dt = '2005-01-02'
+        end_dt = '2016-12-31'
         new_data = True
         while (end_dt < '2026-06-30'):
             #
             # äusserer Loop über alle Iterationen
             #
             i += 1
-            self.learning_rate = 0.0005
             self.setIterRates(trader, i)
             action_hold = 0
             action_buy = 0
             action_sell = 0
-            if (i < num_pre_train_iter):
-                if (i%300 == 0):
-                    new_data = True
-                else:
-                    new_data = False
-            elif (i == num_pre_train_iter):
-                #
-                # Beginn des rollierenden Training - initialisieren eins rollierenden 3-Jahres-Fenster
-                start_dt = '2023-01-02'
-                end_dt = '2023-06-30'
-                self.learning_rate = 0.00005
-            elif (i > num_pre_train_iter):
-                if (i % 300 == 0):
+            if (i >= num_pre_train_iter):
+                if (i % 5000 == 0):
                     #
                     # alle 5000 iterationen wird das Zeitfenster um 1 Tag erhöht und der Folgetag bewertet
                     #
-                    start_dates = self.add_business_day(env, start_dt, 5)
-                    start_dt = start_dates[-1]
+                    # start_dates = self.add_business_day(env, start_dt, 5)
+                    # start_dt = start_dates[-1]
                     end_dates = self.add_business_day(env, end_dt, 5)
                     end_dt = end_dates[-1]
                     new_data = True
