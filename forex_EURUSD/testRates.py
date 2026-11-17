@@ -12,14 +12,14 @@ import pandas as pd
 
 def setIterRates(rate, i):
     
-    rate = rate * np.exp(-(1/(64000 + i)))
+    rate = rate * np.exp(-(1/(24000 + i)))
     
     return rate
 
 
 lr = 0.99
 
-for i in range(600000):
+for i in range(200000):
     lr = setIterRates(lr, i)
 print(lr)
 

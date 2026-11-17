@@ -862,22 +862,20 @@ class forexRLDayTrading:
 
 
 
-    def add_business_day(self, date_string, date_format="%Y-%m-%d"):
+    def add_business_day(self, env, date_string, num_day):
+        #
         # 1. String in ein Datumsobjekt umwandeln
+        date_format = "%Y-%m-%d"
         date_obj = datetime.strptime(date_string, date_format)
-
-        # 2. Immer mindestens 1 Tag addieren
-        date_obj += timedelta(days=1)
-
-        # 3. Wenn Samstag (5), addiere 2 Tage extra -> Montag
-        if date_obj.weekday() == 5:
-            date_obj += timedelta(days=2)
-        # Wenn Sonntag (6), addiere 1 Tag extra -> Montag
-        elif date_obj.weekday() == 6:
+        #
+        # es werden nur valide tage hinzugefügt
+        added_days = []
+        while (len(added_days) < num_day):
             date_obj += timedelta(days=1)
+            if (env.isValidDay(date_obj.strftime(date_format))):
+                added_days.append(date_obj.strftime(date_format))
 
-        # 4. Zurück in einen String konvertieren
-        return date_obj.strftime(date_format)
+        return added_days
 
 
        
@@ -908,7 +906,7 @@ class forexRLDayTrading:
     def rate_ERscheduler(self, i, rate): 
         
         if (rate > 0.01):
-            rate = rate * np.exp(-(1 / (64000 + i)))
+            rate = rate * np.exp(-(1 / (24000 + i)))
         #    rate = rate * np.exp(-(1/(12000 + i)))
         else:
             rate = 0.01
@@ -976,7 +974,7 @@ class forexRLDayTrading:
             num_buy_action = sum([abs(x) for x in action if x == 1])
             num_sell_action = sum([abs(x) for x in action if x == -1])
 
-        return batch_id, profit, num_buy_action, num_sell_action, num_trades, num_long_trades, num_short_trades
+        return [batch_id, profit, num_buy_action, num_sell_action, num_trades, num_long_trades, num_short_trades]
 
 
  
@@ -994,11 +992,10 @@ class forexRLDayTrading:
         ### change re-start parameter here ####
         #self.dr = 0.75
         self.dreaming_rate = 1.0
-        self.exploration_rate = 0.1016
-        self.learning_rate = 0.005
-        init_weight_name = 'bestModel'
+        self.exploration_rate = 0.99
+        init_weight_name = 'initModel'
         self.last_best_upd = 0
-        i = 561000
+        i = 0
         ### change re-start parameter here ####
         #######################################
         #
@@ -1025,61 +1022,50 @@ class forexRLDayTrading:
                                 self.ff)
         result = []
         result_profit = []
-        start_dt = '2005-02-01'
-        end_dt = '2015-12-31'
-        end_dt_fix = False
+        start_dt = '2015-01-02'
+        end_dt = '2022-12-31'
+        new_data = True
         while (end_dt < '2026-06-30'):
             #
             # äusserer Loop über alle Iterationen
             #
             i += 1
+            self.learning_rate = 0.0005
             self.setIterRates(trader, i)
             action_hold = 0
             action_buy = 0
             action_sell = 0
-            if (i == 600000):
+            if (i < 200000):
+                if (i%300 == 0):
+                    new_data = True
+                else:
+                    new_data = False
+            elif (i == 200000):
                 #
                 # Beginn des rollierenden Training - initialisieren eins rollierenden 3-Jahres-Fenster
-                start_dt = '2013-01-02'
-                end_dt = '2015-12-31'
-            elif (i > 600000):
-                if (i % 5000 == 0):
+                start_dt = '2023-01-02'
+                end_dt = '2023-06-31'
+                self.learning_rate = 0.00005
+            elif (i > 200000):
+                if (i % 300 == 0):
                     #
                     # alle 5000 iterationen wird das Zeitfenster um 1 Tag erhöht und der Folgetag bewertet
                     #
-                    validDay = False
-                    while not validDay:
-                        start_dt = self.add_business_day(start_dt)
-                        validDay = env.isValidDay(start_dt)
-
-                    validDay = False
-                    while not validDay:
-                        end_dt = self.add_business_day(end_dt)
-                        validDay = env.isValidDay(end_dt)
-                    #
-                    # die Daten für das neue end_dt sollen während des rollierenden Trainings immer in das Training Sample
-                    # aufgenommen werden
-                    end_dt_fix = True
+                    start_dates = self.add_business_day(env, start_dt, 5)
+                    start_dt = start_dates[-1]
+                    end_dates = self.add_business_day(env, end_dt, 5)
+                    end_dt = end_dates[-1]
+                    new_data = True
                     #
                     print('Neues StartDate = {}, neues EndDate = {}'.format(start_dt, end_dt))
                     #
-                    # das neue End-Datum mit dem aktuellen Modell bewerten
-                    newDay = env.getRL_Data(end_dt)
-                    (nd_batch_id,
-                     nd_profit,
-                     num_buy_action,
-                     num_sell_action,
-                     num_trades,
-                     num_long_trades,
-                     num_short_trades) = self.evalOneDay(trader, newDay)
-                    result_profit.append([end_dt,
-                                          nd_batch_id,
-                                          nd_profit,
-                                          num_buy_action,
-                                          num_sell_action,
-                                          num_trades,
-                                          num_long_trades,
-                                          num_short_trades])
+                    # die neuen Tage mit dem aktuellen Modell bewerten
+                    for day in end_dates:
+                        newDay = env.getRL_Data(day)
+                        eval_result = [day]
+                        eval_result.append(self.evalOneDay(trader, newDay))
+                        result_profit.append(eval_result)
+
                     df_profit = pd.DataFrame(result_profit, columns=['Datum',
                                                                      'Batch_id',
                                                                      'Profit',
@@ -1090,11 +1076,12 @@ class forexRLDayTrading:
                                                                      'Anzahl Short Trades'])
                     df_profit.to_csv(self.finalpath + 'result/profit-results.csv', index=False)
 
-            curr_state, info = env.reset(options={"start_dt": start_dt,
+            curr_state, info = env.reset(options={"iteration": i,
+                                                  "start_dt": start_dt,
                                                   "end_dt": end_dt,
-                                                  "end_dt_fix": end_dt_fix})
-
+                                                  "new_data": new_data})
             curr_state = curr_state.reshape(1, self.ts, self.ff)
+            new_data = False
 
             for j in range(self.bs):
                 #

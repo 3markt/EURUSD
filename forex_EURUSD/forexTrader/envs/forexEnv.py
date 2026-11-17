@@ -34,7 +34,7 @@ class ForexEnv(gym.Env):
         self.current_path = data_path + 'current/'
         self.ts = window_size
         self.bs = batch_size
-        self.n_batch = 250
+        self.n_batch = 300
         self.pip = 10000
         self.position = Positions.Nothing
         self.start_tick = 0
@@ -53,8 +53,7 @@ class ForexEnv(gym.Env):
         self.n_short = 0
         self.n_hold = 0
         self.batch_duration = 500
-        self.iter = 0
-        
+        #
         # Auswahl der training files
         self.dfiles = [f for f in listdir(self.data_path) if isfile(join(self.data_path, f)) \
                        and f[:3] == 'day']
@@ -63,15 +62,6 @@ class ForexEnv(gym.Env):
         self.n_days = len(self.dfiles)
         self.days = np.random.choice(range(self.n_days), size=self.n_batch, replace=False)
         self.all_data = np.array((), dtype=object)
-        for day in self.days:
-            self.all_data = np.append(self.all_data, 
-                                      np.load(self.data_path + self.dfiles[day],
-                                              allow_pickle=True))
-
-        self.all_data = self.all_data.reshape(self.n_batch, 5)
-        #
-        # wähle aus den geladenen Batches einen zufällig aus
-        self.batch_id = random.randint(0, self.n_batch - 1)
         #
         # current_profit variables
         self.mean_cp = 0.0
@@ -102,49 +92,41 @@ class ForexEnv(gym.Env):
         #
         super().reset(seed=seed)
         # Standard-Fallbacks definieren, falls keine Datumsangaben übergeben werden
+        iteration = None
         start_dt = None
         end_dt = None
-        end_dt_fix = None
+        new_data = None
         #
         # Werte aus dem options-Dictionary auslesen, falls vorhanden
         if options is not None:
+            iteration = options.get("iteration")
             start_dt = options.get("start_dt")
             end_dt = options.get("end_dt")
-            end_dt_fix = options.get("end_dt_fix")
+            new_data = options.get("new_data")
 
-        if (self.iter%self.batch_duration == 0):
+        if new_data:
             #
-            # lade zufällig ausgewählte neue Batches aus dem Zeitfenster [start_dt - end_dt]
+            # lade neue Batches aus dem Zeitfenster [start_dt - end_dt]
             #
             dfiles = [f for f in self.dfiles if f[4:14] >= start_dt and f[4:14] <= end_dt]
             #
-            # prüfen ob genügend daten vorhanden
-            n_dfiles = len(dfiles)
-            if (n_dfiles < self.n_batch):
-                sys.exit('Anzahl ausgewählter RL-Daten {} kleiner als Batch-Size {}'.format(n_dfiles, self.n_batch))
-            #
-            # Erzeugen des training samples
-            if not end_dt_fix:
-                #
-                # alle Daten werden zufällig ausgewählt
-                sfiles = np.random.choice(dfiles, size=self.n_batch, replace=False)
+            # prüfen ob mehr daten als n_batch gewünscht
+            if (len(dfiles) < self.n_batch):
+                # alle ausgewählten daten kommen ins batch
+                sfiles = dfiles
             else:
-                #
-                # sicherstellen, dass Daten für end_dt immer im Training Sample sind
-                f_end_dt = 'day-' + end_dt + '.npy'
-                dfiles = [f for f in dfiles if f != f_end_dt]
-                sfiles = np.random.choice(dfiles, size=self.n_batch-1, replace=False)
-                sfiles = np.append(sfiles, [f_end_dt])
+                # wähle daten zufällig ins batch
+                sfiles = np.random.choice(dfiles, size=self.n_batch, replace=False)
 
             self.all_data = np.array((), dtype=object)
             for s in sfiles:
                 self.all_data = np.append(self.all_data,
                                           np.load(self.data_path + s, allow_pickle=True))
-            self.all_data = self.all_data.reshape(self.n_batch, 5)
-            print('ForexEnv: neue Daten geladen bei Iteration', self.iter)
+            self.all_data = self.all_data.reshape(len(sfiles), 5)
+            print('ForexEnv: neue Daten geladen bei Iteration', iteration)
         #
         # wähle zufällig eine batch_id
-        self.batch_id = random.randint(0, self.n_batch - 1)
+        self.batch_id = random.randint(0, self.all_data.shape[0] - 1)
 
         self.position = Positions.Nothing
         self.prices, self.rewards, self.transcost, self.dttimes, self.feature_values = self.prepare_data()
@@ -176,8 +158,6 @@ class ForexEnv(gym.Env):
             position = self.position,
             action = Actions.Hold
         )
-
-        self.iter += 1
 
         return (self.state, info)
 
