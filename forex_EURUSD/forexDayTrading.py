@@ -1004,6 +1004,7 @@ class forexRLDayTrading:
         init_weight_name = 'initModel'
         self.last_best_upd = 0
         i = 0
+        num_pre_train_iter = 150000
         ### change re-start parameter here ####
         #######################################
         #
@@ -1043,18 +1044,18 @@ class forexRLDayTrading:
             action_hold = 0
             action_buy = 0
             action_sell = 0
-            if (i < 500):
+            if (i < num_pre_train_iter):
                 if (i%300 == 0):
                     new_data = True
                 else:
                     new_data = False
-            elif (i == 500):
+            elif (i == num_pre_train_iter):
                 #
                 # Beginn des rollierenden Training - initialisieren eins rollierenden 3-Jahres-Fenster
                 start_dt = '2023-01-02'
                 end_dt = '2023-06-30'
                 self.learning_rate = 0.00005
-            elif (i > 500):
+            elif (i > num_pre_train_iter):
                 if (i % 300 == 0):
                     #
                     # alle 5000 iterationen wird das Zeitfenster um 1 Tag erhöht und der Folgetag bewertet
