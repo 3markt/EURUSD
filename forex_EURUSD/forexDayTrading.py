@@ -936,6 +936,9 @@ class forexRLDayTrading:
         close = day[2].flatten().tolist()
         x = day[3].astype(np.float32)
         action = trader.predictOneDay(x).tolist()
+        num_hold_action = sum([1 for x in action if x == 0])
+        num_buy_action = sum([1 for x in action if x == 1])
+        num_sell_action = sum([1 for x in action if x == -1])
         profit = 0.
         position = 0
         last_i = None
@@ -971,10 +974,8 @@ class forexRLDayTrading:
                     last_i = i
             position = a
             i += 1
-            num_buy_action = sum([abs(x) for x in action if x == 1])
-            num_sell_action = sum([abs(x) for x in action if x == -1])
 
-        return [batch_id, profit, num_buy_action, num_sell_action, num_trades, num_long_trades, num_short_trades]
+        return [batch_id, profit, num_hold_action, num_sell_action, num_trades, num_long_trades, num_short_trades]
 
 
  
@@ -1067,6 +1068,7 @@ class forexRLDayTrading:
                     df_profit = pd.DataFrame(result_profit, columns=['Datum',
                                                                      'Batch_id',
                                                                      'Profit',
+                                                                     'Anzahl Hold Action',
                                                                      'Anzahl Buy Action',
                                                                      'Anzahl Sell Action',
                                                                      'Anzahl Trades',
