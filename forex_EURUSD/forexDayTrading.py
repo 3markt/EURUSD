@@ -1062,9 +1062,7 @@ class forexRLDayTrading:
                     # die neuen Tage mit dem aktuellen Modell bewerten
                     for day in end_dates:
                         newDay = env.getRL_Data(day)
-                        eval_result = [day]
-                        eval_result.append(self.evalOneDay(trader, newDay))
-                        result_profit.append(eval_result)
+                        result_profit.append([day] + self.evalOneDay(trader, newDay))
 
                     df_profit = pd.DataFrame(result_profit, columns=['Datum',
                                                                      'Batch_id',

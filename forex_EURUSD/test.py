@@ -16,8 +16,5 @@ from datetime import datetime, timedelta
 
 a = ['aa', 'bb', 'cc', 'dd', 'ee', 'ff']
 
-a = [f for f in a if f != 'ff']
-print(a)
-s = np.random.choice(a, size=3, replace=False)
-s = np.append(s, ['ff'])
-print(s)
+b = ['zz']
+print(b+a)
