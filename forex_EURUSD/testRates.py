@@ -19,7 +19,7 @@ def setIterRates(rate, i):
 
 lr = 0.001
 
-for i in range(10000000):
+for i in range(1500000):
     lr = setIterRates(lr, i)
-print(lr)
+print('learning_rate = %5.8f' % (lr))
 

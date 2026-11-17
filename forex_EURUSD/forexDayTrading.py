@@ -1157,7 +1157,7 @@ class forexRLDayTrading:
                 self.last_best_upd += 1
                 print('Average Total Reward = %5.2f Max Total Reward = %5.2f' \
                       % (avgTotalReward, maxAvgTotalReward))
-                print('exploration_rate = %5.4f dreaming_rate = %5.4f learning_rate = %5.4f' \
+                print('exploration_rate = %5.4f dreaming_rate = %5.4f learning_rate = %5.8f' \
                       % (self.exploration_rate, 
                          self.dreaming_rate, 
                          self.learning_rate))
