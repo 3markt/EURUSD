@@ -245,14 +245,13 @@ class ForexEnv(gym.Env):
         
         dttimes = self.all_data[self.batch_id][1]
         prices = self.all_data[self.batch_id][2].reshape(self.bs)
-    #   rewards = self.pip*np.diff(prices, append=prices[-1])/prices
-        logp_rewards = self.pip*np.log(np.roll(prices, -1)/prices)
-        logp_rewards[-1] = self.pip*np.log(prices[-1]/prices[-2])
-        logp_rewards = np.clip(logp_rewards, -5, 5)
-        logp_transcost = self.pip*np.log(1 + ((self.trade_fee/self.pip)/prices))
+        rewards = self.pip*np.log(np.roll(prices, -1)/prices)
+        rewards[-1] = 0.0
+        rewards = np.clip(rewards, -5, 5)
+        transcost = self.pip*np.log(1 + ((self.trade_fee/self.pip)/prices))
         feature_values = self.all_data[self.batch_id][3]
 
-        return prices, logp_rewards, logp_transcost, dttimes, feature_values
+        return prices, rewards, transcost, dttimes, feature_values
 
 
 
@@ -262,28 +261,31 @@ class ForexEnv(gym.Env):
         #
         assert action in [-1, 0, 1]
 
-        r = self.no_trade_fee
+        r = 0.0
         if (self.position == Positions.Nothing and action == Actions.Buy.value):
         # reward for opening a Long position
             r = action*self.rewards[self.current_tick] - self.transcost[self.current_tick]
         elif (self.position == Positions.Nothing and action == Actions.Sell.value):
         # reward for opening a short position
             r = action*self.rewards[self.current_tick] - self.transcost[self.current_tick]
+        elif (self.position == Positions.Nothing and action == Actions.Hold.value):
+        # reward for doing nothing
+            r = self.no_trade_fee
         elif (self.position == Positions.Long and action == Actions.Hold.value):
         # reward for closing a long position
-            r = self.no_trade_fee
-        elif (self.position == Positions.Short and action == Actions.Hold.value):
-        # reward for closing a short position
-            r = self.no_trade_fee
+            r = 0.0
         elif (self.position == Positions.Long and action == Actions.Buy.value):
         # reward for holding a long position - no trading fees
-            r = action*self.rewards[self.current_tick]
-        elif (self.position == Positions.Short and action == Actions.Sell.value):
-       # reward for holding a short position - no trading fees
             r = action*self.rewards[self.current_tick]
         elif (self.position == Positions.Long and action == Actions.Sell.value):
         # reward for closing a long position and opening a short one
             r = action*self.rewards[self.current_tick] - self.transcost[self.current_tick]
+        elif (self.position == Positions.Short and action == Actions.Hold.value):
+        # reward for closing a short position
+            r = 0.0
+        elif (self.position == Positions.Short and action == Actions.Sell.value):
+       # reward for holding a short position - no trading fees
+            r = action*self.rewards[self.current_tick]
         elif (self.position == Positions.Short and action == Actions.Buy.value):
         # reward for closing a short position and opening a long one
             r = action*self.rewards[self.current_tick] - self.transcost[self.current_tick]

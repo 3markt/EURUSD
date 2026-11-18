@@ -14,6 +14,8 @@ from os.path import isfile, join, isdir
 from datetime import datetime, timedelta
 
 
-a = ['aa', 'bb', 'cc', 'dd', 'ee', 'ff', 'gg']
-
-print(a[1:6:2])
+a = np.array([1, 2, 3, 4, 5, 6])
+#r = np.roll(a, -1)/a
+r[:-1] = a[1:]/a[:-1]
+r[-1] = 0.0
+print(r)

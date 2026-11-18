@@ -991,11 +991,11 @@ class forexRLDayTrading:
         ### change re-start parameter here ####
         #self.dr = 0.75
         self.dreaming_rate = 1.0
-        self.learning_rate = 0.001
-        self.exploration_rate = 0.99
-        init_weight_name = 'initModel'
+        self.learning_rate = 0.00042953
+        self.exploration_rate = 0.4252
+        init_weight_name = 'bestModel'
         self.last_best_upd = 0
-        i = 0
+        i = 85000
         num_pre_train_iter = 150000
         ### change re-start parameter here ####
         #######################################
