@@ -881,10 +881,10 @@ class forexRLDayTrading:
        
     def rate_LRscheduler(self, i, rate): 
         
-        if (rate > 0.00001):
-            rate = rate * np.exp(-(1/(64000 + i)))
+        if (rate > 0.00005):
+            rate = rate * np.exp(-(1/(256000 + i)))
         else:
-            rate = 0.00001
+            rate = 0.00005
 
         return rate
             
@@ -897,7 +897,7 @@ class forexRLDayTrading:
     def rate_ERscheduler(self, i, rate): 
         
         if (rate > 0.01):
-            rate = rate * np.exp(-(1 / (64000 + i)))
+            rate = rate * np.exp(-(1 / (24000 + i)))
         #    rate = rate * np.exp(-(1/(12000 + i)))
         else:
             rate = 0.01
@@ -991,12 +991,12 @@ class forexRLDayTrading:
         ### change re-start parameter here ####
         #self.dr = 0.75
         self.dreaming_rate = 1.0
-        self.learning_rate = 0.00042953
-        self.exploration_rate = 0.4252
-        init_weight_name = 'bestModel'
+        self.learning_rate = 0.001
+        self.exploration_rate = 0.99
+        init_weight_name = 'initModel'
         self.last_best_upd = 0
-        i = 85000
-        num_pre_train_iter = 150000
+        i = 0
+        num_pre_train_iter = 50000
         ### change re-start parameter here ####
         #######################################
         #
@@ -1024,8 +1024,8 @@ class forexRLDayTrading:
         result = []
         result_profit = []
         start_dt = '2005-01-02'
-        end_dt = '2016-12-31'
-        new_data = True
+        end_dt = '2015-12-31'
+        new_data = 0
         while (end_dt < '2026-06-30'):
             #
             # äusserer Loop über alle Iterationen
@@ -1044,7 +1044,7 @@ class forexRLDayTrading:
                     # start_dt = start_dates[-1]
                     end_dates = self.add_business_day(env, end_dt, 5)
                     end_dt = end_dates[-1]
-                    new_data = True
+                    new_data = 5
                     #
                     print('Neues StartDate = {}, neues EndDate = {}'.format(start_dt, end_dt))
                     #

@@ -34,7 +34,8 @@ class ForexEnv(gym.Env):
         self.current_path = data_path + 'current/'
         self.ts = window_size
         self.bs = batch_size
-        self.n_batch = 300
+        self.n_batch = 1000
+        self.batch_duration = 1000
         self.pip = 10000
         self.position = Positions.Nothing
         self.start_tick = 0
@@ -52,7 +53,6 @@ class ForexEnv(gym.Env):
         self.n_long = 0
         self.n_short = 0
         self.n_hold = 0
-        self.batch_duration = 500
         #
         # Auswahl der training files
         self.dfiles = [f for f in listdir(self.data_path) if isfile(join(self.data_path, f)) \
@@ -109,11 +109,12 @@ class ForexEnv(gym.Env):
             end_dt = options.get("end_dt")
             new_data = options.get("new_data")
 
-        if (new_data or iteration%self.batch_duration == 0):
+        if (new_data > 0 or iteration%self.batch_duration == 0):
             #
             # lade neue Batches aus dem Zeitfenster [start_dt - end_dt]
             #
             dfiles = [f for f in self.dfiles if f[4:14] >= start_dt and f[4:14] <= end_dt]
+            dfiles.sort()
             #
             # prüfen ob mehr daten als n_batch gewünscht
             if (len(dfiles) < self.n_batch):
@@ -121,7 +122,23 @@ class ForexEnv(gym.Env):
                 sfiles = dfiles
             else:
                 # wähle daten zufällig ins batch
-                sfiles = np.random.choice(dfiles, size=self.n_batch, replace=False)
+                p = np.ones_like(dfiles, dtype=float)
+                #
+                # die neueren Daten bekommen eine höhere Wahrscheinlichkeiten ausgewählt zu werden, so dass das
+                # Modell immer für die aktuellste Datensituation trainiert wird
+                nn = len(p)
+                n1 = int(nn/3)
+                n2 = int(2*nn/3)
+                p[n1:n2] += 1
+                p[n2:] += 2
+                if (new_data > 0):
+                    # falls neue Daten vorhanden sind, die das Modell noch nie gesehen hat, bekommen diese die höchste
+                    # Wahrscheinlichkeit ausgewählt zu werden
+                    p[nn-new_data:] += 2
+
+                # Normierung des p-Vektors
+                p = p/sum(p)
+                sfiles = np.random.choice(dfiles, size=self.n_batch, replace=False, p=p)
 
             self.all_data = np.array((), dtype=object)
             for s in sfiles:
@@ -245,8 +262,8 @@ class ForexEnv(gym.Env):
         
         dttimes = self.all_data[self.batch_id][1]
         prices = self.all_data[self.batch_id][2].reshape(self.bs)
-        rewards = self.pip*np.log(np.roll(prices, -1)/prices)
-        rewards[-1] = 0.0
+        rewards = np.zeros_like(prices, dtype=float)
+        rewards[:-1] = (self.pip * np.log(prices[1:] / prices[:-1]))
         rewards = np.clip(rewards, -5, 5)
         transcost = self.pip*np.log(1 + ((self.trade_fee/self.pip)/prices))
         feature_values = self.all_data[self.batch_id][3]
