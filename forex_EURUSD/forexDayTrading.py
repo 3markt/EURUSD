@@ -1069,7 +1069,7 @@ class forexRLDayTrading:
                                                   "end_dt": end_dt,
                                                   "new_data": new_data})
             curr_state = curr_state.reshape(1, self.ts, self.ff)
-            new_data = False
+            new_data = 0
 
             for j in range(self.bs):
                 #
