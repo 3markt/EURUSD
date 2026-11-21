@@ -14,15 +14,13 @@ plt.figure(figsize=(12, 8)) # Schön groß machen!
 
 
 path = '/home/uwe/Hope/data/final/EURUSD/RL-data/'
-file = 'day-2010-05-17.npy'
+file = 'day-2015-12-03.npy'
 
-y = np.load(path + file, allow_pickle=True).reshape(1,5)
-ff = y[0][3].shape[2]
-print(y.shape[0], ff)
-"""
+y = np.load(path + file, allow_pickle=True)[2].flatten()
+print(y.shape, len(y))
 x = range(len(y))
 
 plt.scatter(x, y, linewidth=0.1)
 plt.grid()
 plt.show()
-"""
+

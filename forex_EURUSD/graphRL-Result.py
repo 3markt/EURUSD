@@ -34,7 +34,7 @@ print(len(files), files[-1])
 cnt = []
 for f in files:
     dfi = pd.read_csv(path + f)
-    npos = len(dfi[dfi["Avg-Total-Reward"] >= 0])
+    npos = len(dfi[dfi["Avg-Total-Reward"] > 0])
     avg_profit = np.mean(dfi["Avg-Total-Reward"])
     avg_hold = np.mean(dfi["Avg-Hold-Action"])
     avg_buy = np.mean(dfi["Avg-Buy-Action"])
