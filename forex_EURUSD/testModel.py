@@ -21,13 +21,72 @@ import torch.utils.data as data
 from forexTrader.envs import forexEnv
 from forexTrader.agent import ForexDayTrader
 
+
+def evalOneDay(trader, day):
+    #
+    # Methode berechnet den Profit für einen Tage
+    #
+    trade_fee = 1.0
+    batch_id = day[0]
+    close = day[2].flatten().tolist()
+    x = day[3].astype(np.float32)
+    action = trader.predictOneDay(x).tolist()
+    print(action)
+    num_hold_action = sum([1 for x in action if x == 0])
+    num_buy_action = sum([1 for x in action if x == 1])
+    num_sell_action = sum([1 for x in action if x == -1])
+    profit = 0.
+    position = 0
+    last_i = None
+    i = 0
+    num_trades = 0
+    num_short_trades = 0
+    num_long_trades = 0
+    for a in action:
+        if (a == 0):
+            if (position in [-1, 1]):
+                profit += position * (close[i] - close[last_i]) - trade_fee
+                last_i = None
+                num_trades += 1
+                if (position == 1):
+                    num_long_trades += 1
+                elif (position == -1):
+                    num_short_trades += 1
+        elif (a == 1):
+            if (position == -1):
+                profit += position * (close[i] - close[last_i]) - trade_fee
+                last_i = i
+                num_trades += 1
+                num_short_trades += 1
+            elif (position == 0):
+                last_i = i
+        elif (a == -1):
+            if (position == 1):
+                profit += position * (close[i] - close[last_i]) - trade_fee
+                last_i = i
+                num_trades += 1
+                num_long_trades += 1
+            elif (position == 0):
+                last_i = i
+        position = a
+        i += 1
+
+    return [batch_id,
+            profit,
+            num_hold_action,
+            num_buy_action,
+            num_sell_action,
+            num_trades,
+            num_long_trades,
+            num_short_trades]
+
+
+
 bs = 252
 ts = 36
 ff = 65
 
 final_path = '/home/uwe/Hope/data/final/EURUSD/'
-data_path = final_path + 'RL-data/'
-file = 'day-2015-12-03.npy'
 
 env_gym = gym.envs.registration.registry.copy()
 for env in env_gym:
@@ -42,3 +101,9 @@ env = gym.make(id='forex-v0',
                batch_size=bs)
 
 trader = ForexDayTrader(env, final_path, 'bestModel', bs, ts, ff)
+
+newDay = env.unwrapped.getRL_Data('2018-01-22')
+
+result = evalOneDay(trader, newDay)
+
+print(result)
