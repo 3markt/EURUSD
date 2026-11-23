@@ -1,10 +1,10 @@
-import gym
-# import gymnasium as gym
+# import gym
+import gymnasium as gym
+# from gym import spaces
+from gymnasium import spaces
 import gc
 import sys
 import pandas as pd
-from gym import spaces
-# from gymnasium import spaces
 import numpy as np
 from enum import Enum
 import random

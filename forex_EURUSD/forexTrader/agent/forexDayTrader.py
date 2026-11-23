@@ -6,8 +6,8 @@ Created on Sun Mar 14 12:10:14 2021
 @author: uwe.mueller
 """
 
-import gym
-# import gymnasium as gym
+# import gym
+import gymnasium as gym
 import numpy as np
 import random
 import time

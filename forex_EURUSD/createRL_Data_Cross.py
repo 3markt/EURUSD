@@ -19,10 +19,10 @@ def calculateRisk(close, window):
     return round(np.sum(risk), 2)
 
 
-path = '/home/chitlom/data/final/EURUSD/RL-data/'
-# path = '/home/uwe/Hope/data/final/EURUSD/RL-data/'
-opath = '/home/chitlom/data/final/EURUSD/'
-# opath = '/home/uwe/Hope/data/final/EURUSD/'
+# path = '/home/chitlom/data/final/EURUSD/RL-data/'
+path = '/home/uwe/Hope/data/final/EURUSD/RL-data/'
+# opath = '/home/chitlom/data/final/EURUSD/'
+opath = '/home/uwe/Hope/data/final/EURUSD/'
 
 dfiles = [f for f in listdir(path) if isfile(join(path, f)) \
                and f[:3] == 'day']

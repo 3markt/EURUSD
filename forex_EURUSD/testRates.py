@@ -12,14 +12,14 @@ import pandas as pd
 
 def setIterRates(rate, i):
     
-    rate = rate * np.exp(-(1/(64000 + i)))
+    rate = rate * np.exp(-(1/(256000 + i)))
     
     return rate
 
 
 lr = 0.001
 
-for i in range(5000):
+for i in range(2000000):
     lr = setIterRates(lr, i)
 print('learning_rate = %5.8f' % (lr))
 
