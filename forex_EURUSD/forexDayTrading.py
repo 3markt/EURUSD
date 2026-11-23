@@ -931,6 +931,8 @@ class forexRLDayTrading:
         num_buy_action = sum([1 for x in action if x == 1])
         num_sell_action = sum([1 for x in action if x == -1])
         profit = 0.
+        profit_pos = 0.
+        profit_neg = 0.
         position = 0
         last_i = None
         i = 0
@@ -940,16 +942,19 @@ class forexRLDayTrading:
         for a in action:
             if (a == 0):
                 if (position in [-1, 1]):
-                    profit += position * (close[i] - close[last_i]) - self.trade_fee
-                    last_i = None
-                    num_trades += 1
+                    profit += position * self.pip * (close[i] - close[last_i]) - self.trade_fee
                     if (position == 1):
+                        profit_pos += position * self.pip * (close[i] - close[last_i]) - self.trade_fee
                         num_long_trades += 1
                     elif (position == -1):
+                        profit_neg += position * self.pip * (close[i] - close[last_i]) - self.trade_fee
                         num_short_trades += 1
+                    last_i = None
+                    num_trades += 1
             elif (a == 1):
                 if (position == -1):
-                    profit += position * (close[i] - close[last_i]) - self.trade_fee
+                    profit += position * self.pip * (close[i] - close[last_i]) - self.trade_fee
+                    profit_neg += position * self.pip * (close[i] - close[last_i]) - self.trade_fee
                     last_i = i
                     num_trades += 1
                     num_short_trades += 1
@@ -957,7 +962,8 @@ class forexRLDayTrading:
                     last_i = i
             elif (a == -1):
                 if (position == 1):
-                    profit += position * (close[i] - close[last_i]) - self.trade_fee
+                    profit += position * self.pip * (close[i] - close[last_i]) - self.trade_fee
+                    profit_pos += position * self.pip * (close[i] - close[last_i]) - self.trade_fee
                     last_i = i
                     num_trades += 1
                     num_long_trades += 1
