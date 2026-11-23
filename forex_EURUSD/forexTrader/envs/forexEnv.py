@@ -60,7 +60,9 @@ class ForexEnv(gym.Env):
         self.dfiles.sort()
         self.validDays = [f[4:14] for f in self.dfiles]
         self.n_days = len(self.dfiles)
-        self.days = np.random.choice(range(self.n_days), size=self.n_batch, replace=False)
+        self.days = np.random.choice(range(self.n_days),
+                                     size=min(self.n_batch, len(self.dfiles)),
+                                     replace=False)
         self.all_data = np.array((), dtype=object)
         #
         # Initiales laden der Daten eines Tages

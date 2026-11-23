@@ -37,7 +37,7 @@ for env in env_gym:
 register(id='forex-v0', entry_point='forexTrader.envs.forexEnv:ForexEnv')
 
 env = gym.make(id='forex-v0',
-               data_path=data_path,
+               data_path=final_path,
                window_size=ts,
                batch_size=bs)
 
