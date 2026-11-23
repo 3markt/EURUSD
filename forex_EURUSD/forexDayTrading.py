@@ -974,6 +974,8 @@ class forexRLDayTrading:
 
         return [batch_id,
                 profit,
+                profit_pos,
+                profit_neg,
                 num_hold_action,
                 num_buy_action,
                 num_sell_action,
@@ -997,7 +999,7 @@ class forexRLDayTrading:
         ### change re-start parameter here ####
         #self.dr = 0.75
         self.dreaming_rate = 1.0
-        self.learning_rate = 0.001
+        self.learning_rate = 0.0005
         self.exploration_rate = 0.99
         init_weight_name = 'initModel'
         self.last_best_upd = 0
@@ -1062,13 +1064,15 @@ class forexRLDayTrading:
                     df_profit = pd.DataFrame(result_profit, columns=['Datum',
                                                                      'Batch_id',
                                                                      'Profit',
+                                                                     'Profit Long',
+                                                                     'Profit Short',
                                                                      'Anzahl Hold Action',
                                                                      'Anzahl Buy Action',
                                                                      'Anzahl Sell Action',
                                                                      'Anzahl Trades',
                                                                      'Anzahl Long Trades',
                                                                      'Anzahl Short Trades'])
-                    df_profit.to_csv(self.finalpath + 'result/profit-results.csv', index=False)
+                    df_profit.to_csv(self.finalpath + 'profit-result.csv', index=False)
 
             curr_state, info = env.reset(options={"iteration": i,
                                                   "start_dt": start_dt,
