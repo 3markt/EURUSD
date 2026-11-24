@@ -1034,7 +1034,7 @@ class forexRLDayTrading:
         start_dt = '2005-01-02'
         end_dt = '2015-12-31'
         new_data = 0
-        while (end_dt < '2026-06-30'):
+        while (end_dt <= '2026-06-30'):
             #
             # äusserer Loop über alle Iterationen
             #
