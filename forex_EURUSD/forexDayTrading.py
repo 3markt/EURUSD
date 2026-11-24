@@ -881,10 +881,10 @@ class forexRLDayTrading:
        
     def rate_LRscheduler(self, i, rate): 
         
-        if (rate > 0.00005):
-            rate = rate * np.exp(-(1/(256000 + i)))
+        if (rate > 0.0005):
+            rate = rate * np.exp(-(1/(512000 + i)))
         else:
-            rate = 0.00005
+            rate = 0.0005
 
         return rate
             
@@ -999,7 +999,7 @@ class forexRLDayTrading:
         ### change re-start parameter here ####
         #self.dr = 0.75
         self.dreaming_rate = 1.0
-        self.learning_rate = 0.0005
+        self.learning_rate = 0.002
         self.exploration_rate = 0.99
         init_weight_name = 'initModel'
         self.last_best_upd = 0
